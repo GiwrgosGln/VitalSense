@@ -33,6 +33,8 @@ services:
       - Jwt__Key=${JWT_KEY}
       - Jwt__Issuer=${JWT_ISSUER}
       - Jwt__Audience=${JWT_AUDIENCE}
+      - Google__ClientId=${GOOGLE_CLIENT_ID}
+      - Google__ClientSecret=${GOOGLE_CLIENT_SECRET}
     ports:
       - "5015:8080"
     depends_on:
