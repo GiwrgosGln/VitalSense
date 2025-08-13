@@ -17,24 +17,40 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
+      - name: Add VM to known hosts
+        run: |
+          ssh-keyscan -H ${{ secrets.VM_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Test SSH connection
+        run: |
+          ssh ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} "echo 'SSH connection successful'"
+
       - name: Copy files to VM
         run: |
-          rsync -avz --delete -e "ssh -o StrictHostKeyChecking=no" ./ ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}:~/VitalSense
+          rsync -avz --delete --exclude='.git' --exclude='.github' ./ ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}:~/VitalSense/
 
       - name: Deploy with Docker Compose
-        env:
-          SA_PASSWORD: ${{ secrets.SA_PASSWORD }}
-          JWT_KEY: ${{ secrets.JWT_KEY }}
-          JWT_ISSUER: ${{ secrets.JWT_ISSUER }}
-          JWT_AUDIENCE: ${{ secrets.JWT_AUDIENCE }}
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} "
-            cd ~/VitalSense &&
-            export SA_PASSWORD='${SA_PASSWORD}' &&
-            export JWT_KEY='${JWT_KEY}' &&
-            export JWT_ISSUER='${JWT_ISSUER}' &&
-            export JWT_AUDIENCE='${JWT_AUDIENCE}' &&
-            docker compose down --remove-orphans &&
-            docker container prune -f &&
+          ssh ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} << 'EOF'
+            cd ~/VitalSense
+            
+            # Create .env file with secrets
+            cat > .env << 'ENVEOF'
+          SA_PASSWORD=${{ secrets.SA_PASSWORD }}
+          JWT_KEY=${{ secrets.JWT_KEY }}
+          JWT_ISSUER=${{ secrets.JWT_ISSUER }}
+          JWT_AUDIENCE=${{ secrets.JWT_AUDIENCE }}
+          ENVEOF
+            
+            echo "Stopping existing containers..."
+            docker compose down --remove-orphans || true
+            docker container prune -f || true
+            
+            echo "Building and starting new containers..."
             docker compose up -d --build
-          "
+            
+            echo "Checking container status..."
+            docker compose ps
+            
+            echo "Deployment complete!"
+          EOF
