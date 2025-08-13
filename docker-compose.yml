@@ -2,12 +2,13 @@ version: '3.8'
 
 services:
   db:
-    image: mcr.microsoft.com/mssql/server:2019-latest
+    image: mcr.microsoft.com/mssql/server:2019-CU18-ubuntu-20.04
     container_name: sqlserver
     environment:
       - ACCEPT_EULA=Y
       - SA_PASSWORD=${SA_PASSWORD}
       - MSSQL_PID=Express
+      - MSSQL_MEMORY_LIMIT_MB=1024
     ports:
       - "1433:1433"
     volumes:
@@ -46,4 +47,4 @@ services:
       start_period: 60s
 
 volumes:
-  sql_data: 
+  sql_data:
