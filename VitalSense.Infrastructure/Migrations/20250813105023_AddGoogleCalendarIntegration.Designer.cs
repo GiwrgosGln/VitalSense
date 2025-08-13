@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using VitalSense.Infrastructure.Data;
 
@@ -11,9 +12,11 @@ using VitalSense.Infrastructure.Data;
 namespace VitalSense.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250813105023_AddGoogleCalendarIntegration")]
+    partial class AddGoogleCalendarIntegration
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -44,10 +47,6 @@ namespace VitalSense.Infrastructure.Migrations
                     b.Property<DateTime>("End")
                         .HasColumnType("datetime2")
                         .HasColumnName("end");
-
-                    b.Property<string>("GoogleEventId")
-                        .HasColumnType("nvarchar(max)")
-                        .HasColumnName("google_event_id");
 
                     b.Property<DateTime>("Start")
                         .HasColumnType("datetime2")

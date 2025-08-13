@@ -67,4 +67,26 @@ public static class ApiEndpoints
         private const string Base = $"{ApiBase}/dashboard";
         public const string Metrics = $"{Base}/metrics";
     }
+
+    public static class Integrations
+    {
+        private const string Base = $"{ApiBase}/integrations";
+        
+        public static class Google
+        {
+            private const string GoogleBase = $"{Base}/google";
+            public const string Authorize = $"{GoogleBase}/authorize";
+            public const string Callback = $"{GoogleBase}/callback";
+            public const string Status = $"{GoogleBase}/status";
+            public const string Disconnect = $"{GoogleBase}/disconnect";
+        }
+        
+        public static class GoogleCalendar
+        {
+            private const string CalendarBase = $"{Base}/google-calendar";
+            public const string SyncAppointment = $"{CalendarBase}/sync-appointment/{{appointmentId:guid}}";
+            public const string UnsyncAppointment = $"{CalendarBase}/unsync-appointment/{{appointmentId:guid}}";
+            public const string ValidateAppointment = $"{CalendarBase}/validate-appointment/{{appointmentId:guid}}";
+        }
+    }
 }

@@ -29,11 +29,14 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IPasswordService, PasswordService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IClientService, ClientService>();
 builder.Services.AddScoped<IMealPlanService, MealPlanService>();
 builder.Services.AddScoped<ITaskService, TaskService>();
 builder.Services.AddScoped<IAppointmentService, AppointmentService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
+builder.Services.AddScoped<IGoogleAuthService, GoogleAuthService>();
+builder.Services.AddScoped<IGoogleCalendarService, GoogleCalendarService>();
 
 // Add controllers
 builder.Services.AddControllers();
@@ -42,7 +45,7 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
-    options.SwaggerDoc("v1", new OpenApiInfo { Title = "Diet Management API", Version = "v1" });
+    options.SwaggerDoc("v1", new OpenApiInfo { Title = "VitalSense API", Version = "v1" });
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Description = "JWT Authorization.",
@@ -122,7 +125,7 @@ using (var scope = app.Services.CreateScope())
     try
     {
         var context = services.GetRequiredService<AppDbContext>();
-        // In tests we may use the InMemory provider which doesn't support migrations
+
         if (context.Database.IsRelational())
         {
             await context.Database.MigrateAsync();
@@ -148,7 +151,6 @@ if (app.Environment.IsDevelopment())
 
 app.MapHealthChecks("/health");
 
-// Avoid HTTPS redirection during integration tests to prevent 307 redirects in TestServer
 if (!app.Environment.IsEnvironment("Testing"))
 {
     app.UseHttpsRedirection();
@@ -160,6 +162,3 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
-
-// Expose Program for WebApplicationFactory integration testing
-public partial class Program { }

@@ -38,4 +38,16 @@ public class User
 
     [Column("refresh_token_expiry")]
     public DateTime? RefreshTokenExpiry { get; set; }
+
+    // Google Calendar Integration
+    [Column("google_access_token")]
+    public string? GoogleAccessToken { get; set; }
+
+    [Column("google_refresh_token")]
+    public string? GoogleRefreshToken { get; set; }
+
+    [Column("google_token_expiry")]
+    public DateTime? GoogleTokenExpiry { get; set; }
+
+    public bool IsGoogleCalendarConnected => !string.IsNullOrEmpty(GoogleAccessToken);
 }

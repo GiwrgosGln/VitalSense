@@ -9,7 +9,7 @@ public class Appointment
     public Guid Id { get; set; }
 
     [Column("title")]
-    public string Title { get; set; }
+    public string Title { get; set; } = string.Empty;
 
     [Column("start")]
     public DateTime Start { get; set; }
@@ -25,4 +25,7 @@ public class Appointment
 
     [Column("client_id")]
     public Guid ClientId { get; set; }
+
+    [Column("google_event_id")]
+    public string? GoogleEventId { get; set; }
 }
