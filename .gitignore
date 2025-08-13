@@ -1,2 +1,5 @@
 **/bin/
 **/obj/
+
+VitalSense.Api/appsettings.json
+VitalSense.Api/appsettings.Development.json
