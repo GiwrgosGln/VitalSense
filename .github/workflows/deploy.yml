@@ -1,0 +1,40 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Copy files to VM
+        run: |
+          rsync -avz --delete -e "ssh -o StrictHostKeyChecking=no" ./ ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}:~/VitalSense
+
+      - name: Deploy with Docker Compose
+        env:
+          SA_PASSWORD: ${{ secrets.SA_PASSWORD }}
+          JWT_KEY: ${{ secrets.JWT_KEY }}
+          JWT_ISSUER: ${{ secrets.JWT_ISSUER }}
+          JWT_AUDIENCE: ${{ secrets.JWT_AUDIENCE }}
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} "
+            cd ~/VitalSense &&
+            export SA_PASSWORD='${SA_PASSWORD}' &&
+            export JWT_KEY='${JWT_KEY}' &&
+            export JWT_ISSUER='${JWT_ISSUER}' &&
+            export JWT_AUDIENCE='${JWT_AUDIENCE}' &&
+            docker compose down --remove-orphans &&
+            docker container prune -f &&
+            docker compose up -d --build
+          "
