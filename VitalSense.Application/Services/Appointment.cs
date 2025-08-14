@@ -29,11 +29,12 @@ public class AppointmentService : IAppointmentService
 		await _context.Appointments.AddAsync(appointment);
 		await _context.SaveChangesAsync();
 
-		// Get user data BEFORE starting background task (while context is still active)
+		// Check if the user has Google Calendar connected and sync the appointment
 		var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == appointment.DieticianId);
-
-		// Sync with Google Calendar and save the event ID
-		await SyncToGoogleCalendarAndSaveEventIdAsync(appointment, user);
+		if (user?.IsGoogleCalendarConnected == true)
+		{
+			await SyncToGoogleCalendarAndSaveEventIdAsync(appointment, user);
+		}
 
 		return appointment;
 	}
@@ -42,7 +43,7 @@ public class AppointmentService : IAppointmentService
 	{
 		try
 		{
-			await Task.Delay(500); // Small delay to ensure database transaction is committed
+			await Task.Delay(500);
 			
 			// Check if user has Google Calendar connected
 			if (user?.IsGoogleCalendarConnected != true)
@@ -145,14 +146,26 @@ public class AppointmentService : IAppointmentService
 		var appt = await _context.Appointments.FirstOrDefaultAsync(a => a.Id == appointmentId);
 		if (appt == null) return false;
 
-		// Get user data BEFORE starting background task (while context is still active)
 		var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == appt.DieticianId);
+
+		if (user != null)
+		{
+			try
+			{
+				var googleDeleted = await _googleCalendarService.DeleteAppointmentFromGoogleAsync(appt, user);
+				if (!googleDeleted)
+				{
+					Console.WriteLine($"WARNING: Could not delete appointment {appt.Id} from Google Calendar");
+				}
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine($"ERROR: Exception deleting appointment {appt.Id} from Google Calendar: {ex.Message}");
+			}
+		}
 
 		_context.Appointments.Remove(appt);
 		await _context.SaveChangesAsync();
-		
-		// Sync deletion with Google Calendar (fire and forget)
-		_ = DeleteFromGoogleCalendarAsync(appt, user);
 
 		return true;
 	}
@@ -177,7 +190,6 @@ public class AppointmentService : IAppointmentService
 
 	public async Task<IEnumerable<Appointment>> GetAllByDieticianAndRangeAsync(Guid dieticianId, DateOnly from, DateOnly to)
 	{
-		// Inclusive of 'from' day start, inclusive of 'to' day end
 		if (to < from) (from, to) = (to, from);
 		var rangeStart = from.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
 		var rangeEndExclusive = to.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc).AddDays(1);

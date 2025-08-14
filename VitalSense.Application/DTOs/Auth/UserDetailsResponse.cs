@@ -1,4 +1,7 @@
+using Microsoft.Data.SqlClient;
+
 namespace VitalSense.Application.DTOs;
+
 public class UserDetailsResponse
 {
     public Guid Id { get; set; }
