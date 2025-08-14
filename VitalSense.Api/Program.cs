@@ -142,9 +142,42 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-// Configure the HTTP request pipeline.
+
+// Enable Swagger in all environments, but protect with basic auth in production
 if (app.Environment.IsDevelopment())
 {
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+else
+{
+    // Basic Auth for Swagger UI, credentials from configuration
+    var swaggerUsername = builder.Configuration["Swagger:Username"];
+    var swaggerPassword = builder.Configuration["Swagger:Password"];
+    app.Use(async (context, next) =>
+    {
+        var path = context.Request.Path.Value;
+        if (path != null && (path.StartsWith("/swagger") || path.StartsWith("/swagger/index.html")))
+        {
+            string? authHeader = context.Request.Headers["Authorization"];
+            if (authHeader != null && authHeader.StartsWith("Basic "))
+            {
+                var encodedUsernamePassword = authHeader.Substring("Basic ".Length).Trim();
+                var decodedUsernamePassword = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(encodedUsernamePassword));
+                var parts = decodedUsernamePassword.Split(':', 2);
+                if (!string.IsNullOrEmpty(swaggerUsername) && !string.IsNullOrEmpty(swaggerPassword) && parts.Length == 2 && parts[0] == swaggerUsername && parts[1] == swaggerPassword)
+                {
+                    await next();
+                    return;
+                }
+            }
+            context.Response.Headers["WWW-Authenticate"] = "Basic realm=\"Swagger UI\"";
+            context.Response.StatusCode = 401;
+            await context.Response.WriteAsync("Authentication required.");
+            return;
+        }
+        await next();
+    });
     app.UseSwagger();
     app.UseSwaggerUI();
 }

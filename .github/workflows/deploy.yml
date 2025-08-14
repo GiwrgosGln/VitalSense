@@ -35,11 +35,14 @@ jobs:
             cd ~/VitalSense
             
             # Create .env file with secrets
+
             cat > .env << 'ENVEOF'
           SA_PASSWORD=${{ secrets.SA_PASSWORD }}
           JWT_KEY=${{ secrets.JWT_KEY }}
           JWT_ISSUER=${{ secrets.JWT_ISSUER }}
           JWT_AUDIENCE=${{ secrets.JWT_AUDIENCE }}
+          SWAGGER_USERNAME=${{ secrets.SWAGGER_USERNAME }}
+          SWAGGER_PASSWORD=${{ secrets.SWAGGER_PASSWORD }}
           ENVEOF
             
             echo "Stopping existing containers..."

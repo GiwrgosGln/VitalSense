@@ -35,6 +35,8 @@ services:
       - Jwt__Audience=${JWT_AUDIENCE}
       - Google__ClientId=${GOOGLE_CLIENT_ID}
       - Google__ClientSecret=${GOOGLE_CLIENT_SECRET}
+      - Swagger__Username=${SWAGGER_USERNAME}
+      - Swagger__Password=${SWAGGER_PASSWORD}
     ports:
       - "5015:8080"
     depends_on:
