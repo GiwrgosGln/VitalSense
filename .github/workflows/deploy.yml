@@ -43,6 +43,7 @@ jobs:
           JWT_AUDIENCE=${{ secrets.JWT_AUDIENCE }}
           GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GOOGLE_REDIRECT_URL=${{ secrets.GOOGLE_REDIRECT_URL }}
           SWAGGER_USERNAME=${{ secrets.SWAGGER_USERNAME }}
           SWAGGER_PASSWORD=${{ secrets.SWAGGER_PASSWORD }}
           ENVEOF
