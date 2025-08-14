@@ -41,6 +41,8 @@ jobs:
           JWT_KEY=${{ secrets.JWT_KEY }}
           JWT_ISSUER=${{ secrets.JWT_ISSUER }}
           JWT_AUDIENCE=${{ secrets.JWT_AUDIENCE }}
+          GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
           SWAGGER_USERNAME=${{ secrets.SWAGGER_USERNAME }}
           SWAGGER_PASSWORD=${{ secrets.SWAGGER_PASSWORD }}
           ENVEOF
