@@ -25,12 +25,24 @@ public class GoogleAuthController : ControllerBase
     [HttpGet(ApiEndpoints.Integrations.Google.Authorize)]
     [Authorize]
     [ProducesResponseType(typeof(GoogleAuthUrlResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetGoogleAuthUrl()
     {
-        if (!TryGetUserId(out var userId)) return Unauthorized();
+        try
+        {
+            if (!TryGetUserId(out var userId)) return Unauthorized();
 
-        var response = await _googleAuthService.GetAuthorizationUrlAsync(userId);
-        return Ok(response);
+            var response = await _googleAuthService.GetAuthorizationUrlAsync(userId);
+            return Ok(response);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = ex.Message });
+        }
+        catch (Exception)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while generating the Google authorization URL." });
+        }
     }
 
     [HttpPost(ApiEndpoints.Integrations.Google.Callback)]

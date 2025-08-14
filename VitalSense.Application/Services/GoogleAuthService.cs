@@ -28,9 +28,21 @@ public class GoogleAuthService : IGoogleAuthService
         var redirectUri = _configuration["Google:RedirectUri"];
         var scope = "https://www.googleapis.com/auth/calendar";
 
+        if (string.IsNullOrEmpty(clientId))
+        {
+            _logger.LogError("Google ClientId is not configured");
+            throw new InvalidOperationException("Google ClientId is not configured. Please check your application settings.");
+        }
+
+        if (string.IsNullOrEmpty(redirectUri))
+        {
+            _logger.LogError("Google RedirectUri is not configured");
+            throw new InvalidOperationException("Google RedirectUri is not configured. Please check your application settings.");
+        }
+
         var authUrl = "https://accounts.google.com/o/oauth2/v2/auth" +
-            $"?client_id={Uri.EscapeDataString(clientId!)}" +
-            $"&redirect_uri={Uri.EscapeDataString(redirectUri!)}" +
+            $"?client_id={Uri.EscapeDataString(clientId)}" +
+            $"&redirect_uri={Uri.EscapeDataString(redirectUri)}" +
             $"&scope={Uri.EscapeDataString(scope)}" +
             $"&response_type=code" +
             $"&state={userId}" +
@@ -150,15 +162,25 @@ public class GoogleAuthService : IGoogleAuthService
     {
         try
         {
+            var clientId = _configuration["Google:ClientId"];
+            var clientSecret = _configuration["Google:ClientSecret"];
+            var redirectUri = _configuration["Google:RedirectUri"];
+
+            if (string.IsNullOrEmpty(clientId) || string.IsNullOrEmpty(clientSecret) || string.IsNullOrEmpty(redirectUri))
+            {
+                _logger.LogError("Google configuration is incomplete. ClientId, ClientSecret, and RedirectUri are required.");
+                return null;
+            }
+
             using var httpClient = new HttpClient();
             httpClient.Timeout = TimeSpan.FromSeconds(30);
             
             var parameters = new Dictionary<string, string>
             {
                 {"code", code},
-                {"client_id", _configuration["Google:ClientId"]!},
-                {"client_secret", _configuration["Google:ClientSecret"]!},
-                {"redirect_uri", _configuration["Google:RedirectUri"]!},
+                {"client_id", clientId},
+                {"client_secret", clientSecret},
+                {"redirect_uri", redirectUri},
                 {"grant_type", "authorization_code"}
             };
 
@@ -195,14 +217,23 @@ public class GoogleAuthService : IGoogleAuthService
     {
         try
         {
+            var clientId = _configuration["Google:ClientId"];
+            var clientSecret = _configuration["Google:ClientSecret"];
+
+            if (string.IsNullOrEmpty(clientId) || string.IsNullOrEmpty(clientSecret))
+            {
+                _logger.LogError("Google ClientId and ClientSecret are required for token refresh.");
+                return null;
+            }
+
             using var httpClient = new HttpClient();
             httpClient.Timeout = TimeSpan.FromSeconds(30);
             
             var parameters = new Dictionary<string, string>
             {
                 {"refresh_token", refreshToken},
-                {"client_id", _configuration["Google:ClientId"]!},
-                {"client_secret", _configuration["Google:ClientSecret"]!},
+                {"client_id", clientId},
+                {"client_secret", clientSecret},
                 {"grant_type", "refresh_token"}
             };
 
