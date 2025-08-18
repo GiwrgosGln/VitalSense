@@ -6,6 +6,7 @@ using VitalSense.Application.Interfaces;
 namespace VitalSense.Api.Controllers;
 
 [ApiController]
+[ApiVersion("1.0")]
 public class GoogleCalendarController : ControllerBase
 {
     private readonly IGoogleCalendarService _googleCalendarService;

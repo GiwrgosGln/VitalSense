@@ -8,6 +8,7 @@ using VitalSense.Api.Endpoints;
 namespace VitalSense.Api.Controllers;
 
 [ApiController]
+[ApiVersion("1.0")]
 public class DashboardController : ControllerBase
 {
     private readonly IDashboardService _dashboardService;

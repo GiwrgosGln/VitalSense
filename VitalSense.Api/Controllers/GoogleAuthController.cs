@@ -7,6 +7,7 @@ using VitalSense.Application.Interfaces;
 namespace VitalSense.Api.Controllers;
 
 [ApiController]
+[ApiVersion("1.0")]
 public class GoogleAuthController : ControllerBase
 {
     private readonly IGoogleAuthService _googleAuthService;

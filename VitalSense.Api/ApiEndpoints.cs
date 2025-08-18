@@ -2,7 +2,7 @@ namespace VitalSense.Api.Endpoints;
 
 public static class ApiEndpoints
 {
-    private const string ApiBase = "api";
+    private const string ApiBase = "v1";
 
     public static class Users
     {

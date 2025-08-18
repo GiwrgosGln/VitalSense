@@ -4,10 +4,12 @@ using VitalSense.Application.Interfaces;
 using VitalSense.Application.DTOs;
 using Microsoft.AspNetCore.Mvc;
 using VitalSense.Api.Endpoints;
+using Microsoft.AspNetCore.Authorization;
 
 namespace VitalSense.Api.Controllers;
 
 [ApiController]
+[ApiVersion("1.0")]
 public class ClientController : ControllerBase
 {
     private readonly IClientService _clientService;
