@@ -12,6 +12,9 @@ public static class ApiEndpoints
         public const string Register = $"{Base}/register";
         public const string RefreshToken = $"{Base}/refresh";
         public const string Me = $"{Base}/me";
+        public const string ChangeEmail = $"{Base}/change-email";
+        public const string ChangePassword = $"{Base}/change-password";
+        public const string ChangeUsername = $"{Base}/change-username";
     }
 
     public static class Clients

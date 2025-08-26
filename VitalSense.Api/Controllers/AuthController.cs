@@ -74,6 +74,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpGet(ApiEndpoints.Users.Me)]
+    [Authorize]
     [ProducesResponseType(typeof(UserDetailsResponse), StatusCodes.Status200OK)]
     public async Task<ActionResult<UserDetailsResponse>> GetMe()
     {
@@ -90,5 +91,89 @@ public class AuthController : ControllerBase
         }
 
         return Ok(userDetails);
+    }
+    
+    [HttpPost(ApiEndpoints.Users.ChangeEmail)]
+    [Authorize]
+    [ProducesResponseType(typeof(ChangeEmailResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ChangeEmail([FromBody] ChangeEmailRequest request)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+        
+        var userId = User.FindFirst("userid")?.Value;
+        if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out var userGuid))
+        {
+            return Unauthorized();
+        }
+        
+        var response = await _authService.ChangeEmailAsync(userGuid, request);
+        
+        if (!response.Success)
+        {
+            return BadRequest(new { message = response.Message });
+        }
+        
+        return Ok(response);
+    }
+    
+    [HttpPost(ApiEndpoints.Users.ChangePassword)]
+    [Authorize]
+    [ProducesResponseType(typeof(ChangePasswordResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+        
+        var userId = User.FindFirst("userid")?.Value;
+        if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out var userGuid))
+        {
+            return Unauthorized();
+        }
+        
+        var response = await _authService.ChangePasswordAsync(userGuid, request);
+        
+        if (!response.Success)
+        {
+            return BadRequest(new { message = response.Message });
+        }
+        
+        return Ok(response);
+    }
+    
+    [HttpPost(ApiEndpoints.Users.ChangeUsername)]
+    [Authorize]
+    [ProducesResponseType(typeof(ChangeUsernameResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ChangeUsername([FromBody] ChangeUsernameRequest request)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+        
+        var userId = User.FindFirst("userid")?.Value;
+        if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out var userGuid))
+        {
+            return Unauthorized();
+        }
+        
+        var response = await _authService.ChangeUsernameAsync(userGuid, request);
+        
+        if (!response.Success)
+        {
+            return BadRequest(new { message = response.Message });
+        }
+        
+        return Ok(response);
     }
 }

@@ -145,4 +145,147 @@ public class AuthService : IAuthService
             CreatedAt = user.CreatedAt,
         };
     }
+    
+    public async Task<ChangeEmailResponse> ChangeEmailAsync(Guid userId, ChangeEmailRequest request)
+    {
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+        
+        if (user == null)
+        {
+            return new ChangeEmailResponse
+            {
+                Success = false,
+                Message = "User not found."
+            };
+        }
+        
+        // Verify current password
+        if (!_passwordService.VerifyPasswordHash(request.CurrentPassword, user.PasswordHash, user.PasswordSalt))
+        {
+            return new ChangeEmailResponse
+            {
+                Success = false,
+                Message = "Current password is incorrect."
+            };
+        }
+        
+        // Check if email is already taken
+        if (await _context.Users.AnyAsync(u => u.Email.ToLower() == request.NewEmail.ToLower() && u.Id != userId))
+        {
+            return new ChangeEmailResponse
+            {
+                Success = false,
+                Message = "Email already in use."
+            };
+        }
+        
+        // Update email
+        user.Email = request.NewEmail;
+        await _context.SaveChangesAsync();
+        
+        return new ChangeEmailResponse
+        {
+            Success = true,
+            Message = "Email successfully updated.",
+            Email = user.Email
+        };
+    }
+    
+    public async Task<ChangePasswordResponse> ChangePasswordAsync(Guid userId, ChangePasswordRequest request)
+    {
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+        
+        if (user == null)
+        {
+            return new ChangePasswordResponse
+            {
+                Success = false,
+                Message = "User not found."
+            };
+        }
+        
+        // Verify current password
+        if (!_passwordService.VerifyPasswordHash(request.CurrentPassword, user.PasswordHash, user.PasswordSalt))
+        {
+            return new ChangePasswordResponse
+            {
+                Success = false,
+                Message = "Current password is incorrect."
+            };
+        }
+        
+        // Create new password hash
+        _passwordService.CreatePasswordHash(request.NewPassword, out byte[] passwordHash, out byte[] passwordSalt);
+        
+        // Update password
+        user.PasswordHash = passwordHash;
+        user.PasswordSalt = passwordSalt;
+        
+        // Invalidate refresh token to force re-login with new credentials
+        user.RefreshToken = null;
+        user.RefreshTokenExpiry = null;
+        
+        await _context.SaveChangesAsync();
+        
+        return new ChangePasswordResponse
+        {
+            Success = true,
+            Message = "Password successfully updated."
+        };
+    }
+    
+    public async Task<ChangeUsernameResponse> ChangeUsernameAsync(Guid userId, ChangeUsernameRequest request)
+    {
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+        
+        if (user == null)
+        {
+            return new ChangeUsernameResponse
+            {
+                Success = false,
+                Message = "User not found."
+            };
+        }
+        
+        // Verify current password
+        if (!_passwordService.VerifyPasswordHash(request.CurrentPassword, user.PasswordHash, user.PasswordSalt))
+        {
+            return new ChangeUsernameResponse
+            {
+                Success = false,
+                Message = "Current password is incorrect."
+            };
+        }
+        
+        // Validate new username
+        if (string.IsNullOrEmpty(request.NewUsername) || request.NewUsername.Length < 6)
+        {
+            return new ChangeUsernameResponse
+            {
+                Success = false,
+                Message = "Username must be at least 6 characters."
+            };
+        }
+        
+        // Check if username is already taken
+        if (await _context.Users.AnyAsync(u => u.Username.ToLower() == request.NewUsername.ToLower() && u.Id != userId))
+        {
+            return new ChangeUsernameResponse
+            {
+                Success = false,
+                Message = "Username already taken."
+            };
+        }
+        
+        // Update username
+        user.Username = request.NewUsername;
+        await _context.SaveChangesAsync();
+        
+        return new ChangeUsernameResponse
+        {
+            Success = true,
+            Message = "Username successfully updated.",
+            Username = user.Username
+        };
+    }
 }
