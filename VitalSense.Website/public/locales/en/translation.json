@@ -1,0 +1,10 @@
+{
+  "navbar": {
+    "title": "VitalSense",
+    "home": "Home",
+    "pricing": "Pricing",
+    "faq": "FAQ",
+    "contact": "Contact",
+    "login": "Login"
+  }
+}

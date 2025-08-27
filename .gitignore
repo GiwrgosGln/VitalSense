@@ -5,3 +5,6 @@
 
 VitalSense.Api/appsettings.json
 VitalSense.Api/appsettings.Development.json
+
+VitalSense.Website/node_modules
+VitalSense.Website/dist
