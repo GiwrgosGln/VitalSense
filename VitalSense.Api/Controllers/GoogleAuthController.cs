@@ -46,17 +46,22 @@ public class GoogleAuthController : ControllerBase
         }
     }
 
-    [HttpPost(ApiEndpoints.Integrations.Google.Callback)]
-    [ProducesResponseType(typeof(GoogleCalendarConnectionResponse), StatusCodes.Status200OK)]
+    [HttpGet(ApiEndpoints.Integrations.Google.Callback)]
     public async Task<IActionResult> HandleGoogleCallback([FromQuery] string code, [FromQuery] string state)
     {
         if (string.IsNullOrEmpty(code) || !Guid.TryParse(state, out var userId))
         {
-            return BadRequest(new { message = "Invalid callback parameters" });
+            return Redirect("http://localhost:5173/settings?success=false&message=Invalid%20callback%20parameters");
         }
 
         var response = await _googleAuthService.HandleOAuthCallbackAsync(code, userId);
-        return Ok(response);
+
+        var redirectUrl =
+            $"http://localhost:5173/settings" +
+            $"?success={response.Success}" +
+            $"&message={Uri.EscapeDataString(response.Message)}";
+
+        return Redirect(redirectUrl);
     }
 
     [HttpGet(ApiEndpoints.Integrations.Google.Status)]
