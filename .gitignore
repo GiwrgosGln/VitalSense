@@ -6,5 +6,6 @@
 VitalSense.Api/appsettings.json
 VitalSense.Api/appsettings.Development.json
 
-VitalSense.Website/node_modules
-VitalSense.Website/dist
+VitalSense.Web/node_modules
+VitalSense.Web/dist
+VitalSense.Web/stats.html
