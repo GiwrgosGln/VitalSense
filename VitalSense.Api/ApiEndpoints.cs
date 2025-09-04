@@ -16,6 +16,16 @@ public static class ApiEndpoints
         public const string ChangePassword = $"{Base}/change-password";
         public const string ChangeUsername = $"{Base}/change-username";
     }
+    
+    public static class QuestionnaireTemplates
+    {
+        private const string Base = $"{ApiBase}/questionnaire-templates";
+        public const string Create = $"{Base}";
+        public const string GetAll = $"{Base}";
+        public const string GetById = $"{Base}/{{templateId}}";
+        public const string Update = $"{Base}/{{templateId}}";
+        public const string Delete = $"{Base}/{{templateId}}";
+    }
 
     public static class Clients
     {
