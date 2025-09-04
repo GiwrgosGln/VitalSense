@@ -48,6 +48,8 @@ jobs:
           GOOGLE_REDIRECT_URI=${{ secrets.GOOGLE_REDIRECT_URL }}
           SWAGGER_USERNAME=${{ secrets.SWAGGER_USERNAME }}
           SWAGGER_PASSWORD=${{ secrets.SWAGGER_PASSWORD }}
+          GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
+          GEMINI_API_URL=${{ secrets.GEMINI_API_URL }}
           ENVEOF
             
             echo "Stopping existing containers..."

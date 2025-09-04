@@ -35,6 +35,7 @@ public static class ApiEndpoints
     public const string GetById = $"{Base}/{{mealPlanId}}";
     public const string GetByClientId = $"{Base}/client/{{clientId}}";
     public const string GetActiveByClientId = $"{Base}/{{clientId}}/active";
+    public const string ConvertExcel = $"{Base}/convert-excel";
     }
     
     public static class Tasks
