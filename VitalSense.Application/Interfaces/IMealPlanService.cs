@@ -8,4 +8,5 @@ public interface IMealPlanService
     Task<MealPlanResponse> CreateAsync(CreateMealPlanRequest request);
     Task<MealPlanResponse?> GetByIdAsync(Guid mealPlanId);
     Task<MealPlanResponse?> GetActiveMealPlanAsync(Guid clientId);
+    Task<MealPlanResponse?> UpdateAsync(Guid mealPlanId, UpdateMealPlanRequest request);
 }

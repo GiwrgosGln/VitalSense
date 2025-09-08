@@ -59,4 +59,17 @@ public class MealPlanController : ControllerBase
             return NotFound();
         return Ok(mealPlan);
     }
+
+    [Authorize]
+    [HttpPut(ApiEndpoints.MealPlans.Edit)]
+    [ProducesResponseType(typeof(MealPlanResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Edit([FromRoute] Guid mealPlanId, [FromBody] UpdateMealPlanRequest request)
+    {
+        var updatedMealPlan = await _mealPlanService.UpdateAsync(mealPlanId, request);
+        if (updatedMealPlan == null)
+            return NotFound();
+        return Ok(updatedMealPlan);
+    }
 }

@@ -25,6 +25,8 @@ public class CreateMealPlanRequest
 
 public class MealDayRequest
 {
+    public Guid? Id { get; set; }
+
     [Required]
     public string Title { get; set; } = string.Empty;
 
@@ -34,6 +36,8 @@ public class MealDayRequest
 
 public class MealRequest
 {
+    public Guid? Id { get; set; }
+
     [Required]
     public string Title { get; set; } = string.Empty;
 

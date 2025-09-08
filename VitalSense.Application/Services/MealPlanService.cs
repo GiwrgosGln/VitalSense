@@ -147,27 +147,131 @@ public class MealPlanService : IMealPlanService
         }).ToList();
     }
 
-        public async Task<MealPlanResponse?> GetActiveMealPlanAsync(Guid clientId)
+    public async Task<MealPlanResponse?> GetActiveMealPlanAsync(Guid clientId)
+    {
+        var now = DateTime.UtcNow.Date;
+        var latestMealPlan = await _context.MealPlans
+            .Where(mp => mp.ClientId == clientId && mp.StartDate.Date <= now && mp.EndDate.Date >= now)
+            .OrderByDescending(mp => mp.UpdatedAt)
+            .Include(mp => mp.Days)
+                .ThenInclude(d => d.Meals)
+            .FirstOrDefaultAsync();
+
+        if (latestMealPlan == null) return null;
+
+        return new MealPlanResponse
         {
-            var now = DateTime.UtcNow.Date;
-            var latestMealPlan = await _context.MealPlans
-                .Where(mp => mp.ClientId == clientId && mp.StartDate.Date <= now && mp.EndDate.Date >= now)
-                .OrderByDescending(mp => mp.UpdatedAt)
+            Id = latestMealPlan.Id,
+            Title = latestMealPlan.Title,
+            StartDate = latestMealPlan.StartDate,
+            EndDate = latestMealPlan.EndDate,
+            DieticianId = latestMealPlan.DieticianId,
+            ClientId = latestMealPlan.ClientId,
+            Days = latestMealPlan.Days.Select(d => new MealDayResponse
+            {
+                Id = d.Id,
+                Title = d.Title,
+                Meals = d.Meals.Select(m => new MealResponse
+                {
+                    Id = m.Id,
+                    Title = m.Title,
+                    Time = m.Time,
+                    Description = m.Description,
+                    Protein = m.Protein,
+                    Carbs = m.Carbs,
+                    Fats = m.Fats,
+                    Calories = m.Calories
+                }).ToList()
+            }).ToList()
+        };
+    }
+
+    public async Task<MealPlanResponse?> UpdateAsync(Guid mealPlanId, UpdateMealPlanRequest request)
+    {
+        using var transaction = await _context.Database.BeginTransactionAsync();
+        
+        try
+        {
+            var existingMealPlan = await _context.MealPlans
+                .AsNoTracking()
+                .FirstOrDefaultAsync(mp => mp.Id == mealPlanId);
+                
+            if (existingMealPlan == null)
+                return null;
+                
+            var mealsSql = $"DELETE FROM meals WHERE meal_day_id IN (SELECT id FROM meal_days WHERE meal_plan_id = '{mealPlanId}')";
+            await _context.Database.ExecuteSqlRawAsync(mealsSql);
+            
+            var daysSql = $"DELETE FROM meal_days WHERE meal_plan_id = '{mealPlanId}'";
+            await _context.Database.ExecuteSqlRawAsync(daysSql);
+            
+            var updatedMealPlan = await _context.MealPlans.FindAsync(mealPlanId);
+            if (updatedMealPlan == null)
+            {
+                await transaction.RollbackAsync();
+                return null;
+            }
+            
+            updatedMealPlan.Title = request.Title;
+            updatedMealPlan.StartDate = request.StartDate;
+            updatedMealPlan.EndDate = request.EndDate;
+            updatedMealPlan.DieticianId = request.DieticianId;
+            updatedMealPlan.UpdatedAt = DateTime.UtcNow;
+            
+            await _context.SaveChangesAsync();
+            
+            foreach (var dayRequest in request.Days)
+            {
+                var day = new MealDay
+                {
+                    Id = dayRequest.Id ?? Guid.NewGuid(),
+                    MealPlanId = mealPlanId,
+                    Title = dayRequest.Title,
+                };
+                
+                _context.MealDays.Add(day);
+                await _context.SaveChangesAsync();
+                
+                foreach (var mealRequest in dayRequest.Meals)
+                {
+                    var meal = new Meal
+                    {
+                        Id = mealRequest.Id ?? Guid.NewGuid(),
+                        MealDayId = day.Id,
+                        Title = mealRequest.Title,
+                        Time = mealRequest.Time ?? "",
+                        Description = mealRequest.Description,
+                        Protein = mealRequest.Protein,
+                        Carbs = mealRequest.Carbs,
+                        Fats = mealRequest.Fats,
+                        Calories = mealRequest.Calories
+                    };
+                    
+                    _context.Meals.Add(meal);
+                }
+                
+                await _context.SaveChangesAsync();
+            }
+            
+            await transaction.CommitAsync();
+            
+            var result = await _context.MealPlans
                 .Include(mp => mp.Days)
                     .ThenInclude(d => d.Meals)
-                .FirstOrDefaultAsync();
-
-            if (latestMealPlan == null) return null;
-
+                .FirstOrDefaultAsync(mp => mp.Id == mealPlanId);
+                
+            if (result == null)
+                return null;
+                
             return new MealPlanResponse
             {
-                Id = latestMealPlan.Id,
-                Title = latestMealPlan.Title,
-                StartDate = latestMealPlan.StartDate,
-                EndDate = latestMealPlan.EndDate,
-                DieticianId = latestMealPlan.DieticianId,
-                ClientId = latestMealPlan.ClientId,
-                Days = latestMealPlan.Days.Select(d => new MealDayResponse
+                Id = result.Id,
+                Title = result.Title,
+                StartDate = result.StartDate,
+                EndDate = result.EndDate,
+                DieticianId = result.DieticianId,
+                ClientId = result.ClientId,
+                Days = result.Days.Select(d => new MealDayResponse
                 {
                     Id = d.Id,
                     Title = d.Title,
@@ -185,4 +289,10 @@ public class MealPlanService : IMealPlanService
                 }).ToList()
             };
         }
+        catch (Exception)
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
+    }
 }
