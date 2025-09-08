@@ -419,5 +419,4 @@ public class GoogleCalendarService : IGoogleCalendarService
             description = $"VitalSense appointment - {appointment.Title}"
         };
     }
-
 }

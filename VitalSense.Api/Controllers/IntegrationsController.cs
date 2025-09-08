@@ -12,15 +12,18 @@ public class GoogleCalendarController : ControllerBase
     private readonly IGoogleCalendarService _googleCalendarService;
     private readonly IAppointmentService _appointmentService;
     private readonly IUserService _userService;
+    private readonly IAppointmentSyncService _appointmentSyncService;
 
     public GoogleCalendarController(
         IGoogleCalendarService googleCalendarService,
         IAppointmentService appointmentService,
-        IUserService userService)
+        IUserService userService,
+        IAppointmentSyncService appointmentSyncService)
     {
         _googleCalendarService = googleCalendarService;
         _appointmentService = appointmentService;
         _userService = userService;
+        _appointmentSyncService = appointmentSyncService;
     }
 
     private bool TryGetUserId(out Guid userId)
@@ -178,6 +181,41 @@ public class GoogleCalendarController : ControllerBase
                 : (cleanupPerformed 
                     ? "Stale sync reference cleaned up - event was deleted from Google Calendar" 
                     : "Event no longer exists in Google Calendar")
+        });
+    }
+
+    [HttpPost(ApiEndpoints.Integrations.GoogleCalendar.SyncAllFutureAppointments)]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> SyncAllFutureAppointments()
+    {
+        if (!TryGetUserId(out var userId)) return Unauthorized();
+
+        // Get user to check if Google Calendar is connected
+        var user = await _userService.GetByIdAsync(userId);
+        if (user == null)
+        {
+            return NotFound(new { message = "User not found" });
+        }
+
+        if (!user.IsGoogleCalendarConnected)
+        {
+            return BadRequest(new { 
+                success = false, 
+                message = "Google Calendar is not connected. Please connect Google Calendar first." 
+            });
+        }
+
+        var (total, synced, failed) = await _appointmentSyncService.SyncAllFutureAppointmentsAsync(userId);
+
+        return Ok(new { 
+            success = failed == 0,
+            message = $"Synced {synced} of {total} future appointments to Google Calendar",
+            details = new {
+                totalAppointments = total,
+                syncedSuccessfully = synced,
+                syncFailed = failed
+            }
         });
     }
 }

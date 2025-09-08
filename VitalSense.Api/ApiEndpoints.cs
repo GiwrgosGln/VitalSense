@@ -102,6 +102,7 @@ public static class ApiEndpoints
             public const string SyncAppointment = $"{CalendarBase}/sync-appointment/{{appointmentId:guid}}";
             public const string UnsyncAppointment = $"{CalendarBase}/unsync-appointment/{{appointmentId:guid}}";
             public const string ValidateAppointment = $"{CalendarBase}/validate-appointment/{{appointmentId:guid}}";
+            public const string SyncAllFutureAppointments = $"{CalendarBase}/sync-all-future-appointments";
         }
     }
 }
