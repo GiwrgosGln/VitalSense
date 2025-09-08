@@ -40,52 +40,63 @@ public class QuestionnaireTemplateService : IQuestionnaireTemplateService
 
     public async Task<QuestionnaireTemplate?> UpdateAsync(Guid templateId, QuestionnaireTemplate updatedTemplate)
     {
-        var template = await _context.QuestionnaireTemplates
-            .Include(qt => qt.Questions)
-            .FirstOrDefaultAsync(qt => qt.Id == templateId);
-            
-        if (template == null) return null;
-
-        template.Title = updatedTemplate.Title;
-        template.Description = updatedTemplate.Description;
-        template.UpdatedAt = DateTime.UtcNow;
-
-        var existingQuestionIds = template.Questions.Select(q => q.Id).ToList();
-        var updatedQuestionIds = updatedTemplate.Questions.Where(q => q.Id != Guid.Empty).Select(q => q.Id).ToList();
+        using var transaction = await _context.Database.BeginTransactionAsync();
         
-        var questionsToRemove = template.Questions.Where(q => !updatedQuestionIds.Contains(q.Id)).ToList();
-        foreach (var question in questionsToRemove)
+        try
         {
-            _context.Remove(question);
-        }
-        
-        foreach (var updatedQuestion in updatedTemplate.Questions)
-        {
-            var existingQuestion = template.Questions.FirstOrDefault(q => q.Id == updatedQuestion.Id);
-            
-            if (existingQuestion != null)
-            {
-                existingQuestion.QuestionText = updatedQuestion.QuestionText;
-                existingQuestion.Order = updatedQuestion.Order;
-                existingQuestion.IsRequired = updatedQuestion.IsRequired;
-            }
-            else
-            {
-                var newQuestion = new QuestionnaireQuestion
-                {
-                    Id = Guid.NewGuid(),
-                    TemplateId = template.Id,
-                    QuestionText = updatedQuestion.QuestionText,
-                    Order = updatedQuestion.Order,
-                    IsRequired = updatedQuestion.IsRequired
-                };
+            var templateExists = await _context.QuestionnaireTemplates
+                .AsNoTracking()
+                .AnyAsync(qt => qt.Id == templateId);
                 
-                template.Questions.Add(newQuestion);
+            if (!templateExists) return null;
+            
+            var questionsSql = $"DELETE FROM questionnaire_questions WHERE template_id = '{templateId}'";
+            await _context.Database.ExecuteSqlRawAsync(questionsSql);
+            
+            var templateSql = $@"
+                UPDATE questionnaire_templates 
+                SET title = '{updatedTemplate.Title.Replace("'", "''")}', 
+                    description = '{(updatedTemplate.Description?.Replace("'", "''") ?? "")}', 
+                    updated_at = '{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff}'
+                WHERE id = '{templateId}'";
+            
+            await _context.Database.ExecuteSqlRawAsync(templateSql);
+            
+            foreach (var updatedQuestion in updatedTemplate.Questions)
+            {
+                var questionId = updatedQuestion.Id != Guid.Empty ? updatedQuestion.Id : Guid.NewGuid();
+                var isRequired = updatedQuestion.IsRequired ? 1 : 0;
+                
+                var insertQuestionSql = $@"
+                    INSERT INTO questionnaire_questions (id, template_id, question_text, [order], is_required)
+                    VALUES ('{questionId}', '{templateId}', '{updatedQuestion.QuestionText.Replace("'", "''")}', {updatedQuestion.Order}, {isRequired})";
+                
+                await _context.Database.ExecuteSqlRawAsync(insertQuestionSql);
             }
+            
+            await transaction.CommitAsync();
+            
+            var result = await _context.QuestionnaireTemplates
+                .AsNoTracking()
+                .FirstOrDefaultAsync(qt => qt.Id == templateId);
+                
+            if (result != null)
+            {
+                var questions = await _context.Set<QuestionnaireQuestion>()
+                    .AsNoTracking()
+                    .Where(q => q.TemplateId == templateId)
+                    .ToListAsync();
+                    
+                result.Questions = questions;
+            }
+                
+            return result;
         }
-        
-        await _context.SaveChangesAsync();
-        return template;
+        catch (Exception)
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
     }
 
     public async Task<bool> DeleteAsync(Guid templateId)
