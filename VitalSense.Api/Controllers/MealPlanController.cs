@@ -72,4 +72,18 @@ public class MealPlanController : ControllerBase
             return NotFound();
         return Ok(updatedMealPlan);
     }
+
+    [Authorize]
+    [HttpDelete(ApiEndpoints.MealPlans.Delete)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Delete([FromRoute] Guid mealPlanId)
+    {
+        var existingMealPlan = await _mealPlanService.GetByIdAsync(mealPlanId);
+        if (existingMealPlan == null)
+            return NotFound();
+
+        await _mealPlanService.DeleteAsync(mealPlanId);
+        return NoContent();
+    }
 }

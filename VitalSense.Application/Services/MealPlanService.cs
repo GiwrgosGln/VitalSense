@@ -189,37 +189,37 @@ public class MealPlanService : IMealPlanService
     public async Task<MealPlanResponse?> UpdateAsync(Guid mealPlanId, UpdateMealPlanRequest request)
     {
         using var transaction = await _context.Database.BeginTransactionAsync();
-        
+
         try
         {
             var existingMealPlan = await _context.MealPlans
                 .AsNoTracking()
                 .FirstOrDefaultAsync(mp => mp.Id == mealPlanId);
-                
+
             if (existingMealPlan == null)
                 return null;
-                
+
             var mealsSql = $"DELETE FROM meals WHERE meal_day_id IN (SELECT id FROM meal_days WHERE meal_plan_id = '{mealPlanId}')";
             await _context.Database.ExecuteSqlRawAsync(mealsSql);
-            
+
             var daysSql = $"DELETE FROM meal_days WHERE meal_plan_id = '{mealPlanId}'";
             await _context.Database.ExecuteSqlRawAsync(daysSql);
-            
+
             var updatedMealPlan = await _context.MealPlans.FindAsync(mealPlanId);
             if (updatedMealPlan == null)
             {
                 await transaction.RollbackAsync();
                 return null;
             }
-            
+
             updatedMealPlan.Title = request.Title;
             updatedMealPlan.StartDate = request.StartDate;
             updatedMealPlan.EndDate = request.EndDate;
             updatedMealPlan.DieticianId = request.DieticianId;
             updatedMealPlan.UpdatedAt = DateTime.UtcNow;
-            
+
             await _context.SaveChangesAsync();
-            
+
             foreach (var dayRequest in request.Days)
             {
                 var day = new MealDay
@@ -228,10 +228,10 @@ public class MealPlanService : IMealPlanService
                     MealPlanId = mealPlanId,
                     Title = dayRequest.Title,
                 };
-                
+
                 _context.MealDays.Add(day);
                 await _context.SaveChangesAsync();
-                
+
                 foreach (var mealRequest in dayRequest.Meals)
                 {
                     var meal = new Meal
@@ -246,23 +246,23 @@ public class MealPlanService : IMealPlanService
                         Fats = mealRequest.Fats,
                         Calories = mealRequest.Calories
                     };
-                    
+
                     _context.Meals.Add(meal);
                 }
-                
+
                 await _context.SaveChangesAsync();
             }
-            
+
             await transaction.CommitAsync();
-            
+
             var result = await _context.MealPlans
                 .Include(mp => mp.Days)
                     .ThenInclude(d => d.Meals)
                 .FirstOrDefaultAsync(mp => mp.Id == mealPlanId);
-                
+
             if (result == null)
                 return null;
-                
+
             return new MealPlanResponse
             {
                 Id = result.Id,
@@ -288,6 +288,30 @@ public class MealPlanService : IMealPlanService
                     }).ToList()
                 }).ToList()
             };
+        }
+        catch (Exception)
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
+    }
+    
+    public async Task DeleteAsync(Guid mealPlanId)
+    {
+        using var transaction = await _context.Database.BeginTransactionAsync();
+        
+        try
+        {
+            var mealsSql = $"DELETE FROM meals WHERE meal_day_id IN (SELECT id FROM meal_days WHERE meal_plan_id = '{mealPlanId}')";
+            await _context.Database.ExecuteSqlRawAsync(mealsSql);
+            
+            var daysSql = $"DELETE FROM meal_days WHERE meal_plan_id = '{mealPlanId}'";
+            await _context.Database.ExecuteSqlRawAsync(daysSql);
+            
+            var planSql = $"DELETE FROM meal_plans WHERE id = '{mealPlanId}'";
+            await _context.Database.ExecuteSqlRawAsync(planSql);
+            
+            await transaction.CommitAsync();
         }
         catch (Exception)
         {

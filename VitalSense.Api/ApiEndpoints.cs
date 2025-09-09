@@ -40,13 +40,14 @@ public static class ApiEndpoints
 
     public static class MealPlans
     {
-    private const string Base = $"{ApiBase}/meal-plans";
-    public const string Create = $"{Base}";
-    public const string GetById = $"{Base}/{{mealPlanId}}";
-    public const string GetByClientId = $"{Base}/client/{{clientId}}";
-    public const string GetActiveByClientId = $"{Base}/{{clientId}}/active";
-    public const string Edit = $"{Base}/{{mealPlanId}}";
-    public const string ConvertExcel = $"{Base}/convert-excel";
+        private const string Base = $"{ApiBase}/meal-plans";
+        public const string Create = $"{Base}";
+        public const string GetById = $"{Base}/{{mealPlanId}}";
+        public const string GetByClientId = $"{Base}/client/{{clientId}}";
+        public const string GetActiveByClientId = $"{Base}/{{clientId}}/active";
+        public const string Edit = $"{Base}/{{mealPlanId}}";
+        public const string ConvertExcel = $"{Base}/convert-excel";
+        public const string Delete = $"{Base}/{{mealPlanId}}";
     }
     
     public static class Tasks
