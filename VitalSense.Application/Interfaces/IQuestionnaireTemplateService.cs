@@ -9,4 +9,8 @@ public interface IQuestionnaireTemplateService
     Task<QuestionnaireTemplate?> UpdateAsync(Guid templateId, QuestionnaireTemplate template);
     Task<bool> DeleteAsync(Guid templateId);
     Task<IEnumerable<QuestionnaireTemplate>> GetAllByDieticianAsync(Guid dieticianId);
+    
+    // Questionnaire Submission methods
+    Task<QuestionnaireSubmission> SubmitQuestionnaireAsync(QuestionnaireSubmission submission);
+    Task<IEnumerable<QuestionnaireSubmission>> GetSubmissionsByClientIdAsync(Guid clientId);
 }

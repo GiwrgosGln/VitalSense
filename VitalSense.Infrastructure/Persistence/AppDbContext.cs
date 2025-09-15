@@ -16,5 +16,7 @@ namespace VitalSense.Infrastructure.Data
         public DbSet<Appointment> Appointments { get; set; }
         public DbSet<QuestionnaireTemplate> QuestionnaireTemplates { get; set; }
         public DbSet<QuestionnaireQuestion> QuestionnaireQuestions { get; set; }
+        public DbSet<QuestionnaireSubmission> QuestionnaireSubmissions { get; set; }
+        public DbSet<QuestionnaireAnswer> QuestionnaireAnswers { get; set; }
     }
 }

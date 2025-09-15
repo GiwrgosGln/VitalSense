@@ -41,6 +41,9 @@ done\n\
 echo "$host is available"\n\
 exec $cmd' > /app/wait-for-it.sh && chmod +x /app/wait-for-it.sh
 
+# Create directory for DataProtection keys
+RUN mkdir -p /keys && chmod 700 /keys
+
 COPY --from=build /app/publish .
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \

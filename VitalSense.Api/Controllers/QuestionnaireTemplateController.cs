@@ -143,6 +143,73 @@ public class QuestionnaireTemplateController : ControllerBase
         
         return NoContent();
     }
+    
+    // Questionnaire Submission endpoints
+    [HttpPost(ApiEndpoints.QuestionnaireTemplates.SubmitQuestionnaire)]
+    [ProducesResponseType(typeof(QuestionnaireSubmissionResponse), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> SubmitQuestionnaire([FromBody] QuestionnaireSubmissionRequest request)
+    {
+        var dieticianIdClaim = User.FindFirst("userid")?.Value;
+        if (string.IsNullOrEmpty(dieticianIdClaim) || !Guid.TryParse(dieticianIdClaim, out var dieticianId))
+        {
+            return Unauthorized();
+        }
+        
+        // Verify template exists and belongs to the dietician
+        var template = await _questionnaireTemplateService.GetByIdAsync(request.TemplateId);
+        if (template == null) return NotFound("Questionnaire template not found");
+        if (template.DieticianId != dieticianId) return Forbid();
+        
+        // Create submission
+        var submission = new QuestionnaireSubmission
+        {
+            TemplateId = request.TemplateId,
+            DieticianId = dieticianId,
+            ClientId = request.ClientId,
+            Answers = request.Answers.Select(a => new QuestionnaireAnswer
+            {
+                QuestionId = a.QuestionId,
+                AnswerText = a.AnswerText
+            }).ToList()
+        };
+        
+        // Validate that all required questions are answered
+        var requiredQuestions = template.Questions.Where(q => q.IsRequired).Select(q => q.Id).ToHashSet();
+        var answeredQuestions = submission.Answers.Select(a => a.QuestionId).ToHashSet();
+        var missingRequiredQuestions = requiredQuestions.Except(answeredQuestions).ToList();
+        
+        if (missingRequiredQuestions.Any())
+        {
+            return BadRequest("Some required questions are not answered");
+        }
+        
+        var created = await _questionnaireTemplateService.SubmitQuestionnaireAsync(submission);
+        var response = MapSubmissionToResponse(created, template);
+        
+        return CreatedAtAction(nameof(GetSubmissionsByClientId), new { clientId = response.ClientId }, response);
+    }
+    
+    [HttpGet(ApiEndpoints.QuestionnaireTemplates.GetSubmissionsByClientId)]
+    [ProducesResponseType(typeof(IEnumerable<QuestionnaireSubmissionResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetSubmissionsByClientId([FromRoute] Guid clientId)
+    {
+        var dieticianIdClaim = User.FindFirst("userid")?.Value;
+        if (string.IsNullOrEmpty(dieticianIdClaim) || !Guid.TryParse(dieticianIdClaim, out var dieticianId))
+        {
+            return Unauthorized();
+        }
+        
+        var submissions = await _questionnaireTemplateService.GetSubmissionsByClientIdAsync(clientId);
+        
+        // Filter out submissions that don't belong to the dietician
+        var filteredSubmissions = submissions.Where(s => s.DieticianId == dieticianId).ToList();
+        
+        var response = filteredSubmissions.Select(s => MapSubmissionToResponse(s, s.Template)).ToList();
+        
+        return Ok(response);
+    }
 
     private QuestionnaireTemplateResponse MapToResponse(QuestionnaireTemplate template)
     {
@@ -162,6 +229,27 @@ public class QuestionnaireTemplateController : ControllerBase
                     Order = q.Order,
                     IsRequired = q.IsRequired
                 }).ToList()
+        };
+    }
+    
+    private QuestionnaireSubmissionResponse MapSubmissionToResponse(QuestionnaireSubmission submission, QuestionnaireTemplate template)
+    {
+        // Create a dictionary to lookup questions by ID
+        var questionsById = template.Questions.ToDictionary(q => q.Id, q => q);
+        
+        return new QuestionnaireSubmissionResponse
+        {
+            Id = submission.Id,
+            TemplateId = submission.TemplateId,
+            TemplateTitle = template.Title,
+            ClientId = submission.ClientId,
+            SubmittedAt = submission.SubmittedAt,
+            Answers = submission.Answers.Select(a => new QuestionnaireAnswerResponse
+            {
+                QuestionId = a.QuestionId,
+                QuestionText = questionsById.TryGetValue(a.QuestionId, out var question) ? question.QuestionText : "Unknown Question",
+                AnswerText = a.AnswerText
+            }).ToList()
         };
     }
 }

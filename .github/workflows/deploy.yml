@@ -29,7 +29,13 @@ jobs:
 
       - name: Copy files to VM
         run: |
-          rsync -avz --delete --exclude='.git' --exclude='.github' ./ ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}:~/VitalSense/
+          rsync -avz --delete \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='VitalSense.Api/keys' \
+            --exclude='VitalSense.Api/appsettings.json' \
+            --exclude='VitalSense.Api/appsettings.Development.json' \
+            ./ ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}:~/VitalSense/
 
       - name: Deploy with Docker Compose
         run: |
@@ -51,6 +57,9 @@ jobs:
           GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
           GEMINI_API_URL=${{ secrets.GEMINI_API_URL }}
           ENVEOF
+            
+            # Create directory for encryption keys if it doesn't exist
+            mkdir -p ~/dataprotection_keys
             
             echo "Stopping existing containers..."
             docker compose down --remove-orphans || true

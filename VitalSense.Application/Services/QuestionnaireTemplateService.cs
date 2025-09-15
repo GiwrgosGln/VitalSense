@@ -2,16 +2,61 @@ using Microsoft.EntityFrameworkCore;
 using VitalSense.Application.Interfaces;
 using VitalSense.Domain.Entities;
 using VitalSense.Infrastructure.Data;
+using VitalSense.Shared.Services;
 
 namespace VitalSense.Application.Services;
 
 public class QuestionnaireTemplateService : IQuestionnaireTemplateService
 {
     private readonly AppDbContext _context;
+    private readonly IEncryptionService _encryptionService;
 
-    public QuestionnaireTemplateService(AppDbContext context)
+    public QuestionnaireTemplateService(AppDbContext context, IEncryptionService encryptionService)
     {
         _context = context;
+        _encryptionService = encryptionService;
+    }
+    
+    // Questionnaire Submission methods
+    public async Task<QuestionnaireSubmission> SubmitQuestionnaireAsync(QuestionnaireSubmission submission)
+    {
+        submission.Id = Guid.NewGuid();
+        submission.SubmittedAt = DateTime.UtcNow;
+        
+        foreach (var answer in submission.Answers)
+        {
+            answer.Id = Guid.NewGuid();
+            answer.SubmissionId = submission.Id;
+            // Encrypt the answer text before saving
+            answer.AnswerText = _encryptionService.Protect(answer.AnswerText);
+        }
+        
+        await _context.Set<QuestionnaireSubmission>().AddAsync(submission);
+        await _context.SaveChangesAsync();
+        
+        return submission;
+    }
+    
+    public async Task<IEnumerable<QuestionnaireSubmission>> GetSubmissionsByClientIdAsync(Guid clientId)
+    {
+        var submissions = await _context.Set<QuestionnaireSubmission>()
+            .Include(s => s.Answers)
+            .Include(s => s.Template)
+                .ThenInclude(t => t.Questions)
+            .Where(s => s.ClientId == clientId)
+            .OrderByDescending(s => s.SubmittedAt)
+            .ToListAsync();
+            
+        // Decrypt all answer texts
+        foreach (var submission in submissions)
+        {
+            foreach (var answer in submission.Answers)
+            {
+                answer.AnswerText = _encryptionService.Unprotect(answer.AnswerText);
+            }
+        }
+        
+        return submissions;
     }
 
     public async Task<QuestionnaireTemplate?> GetByIdAsync(Guid templateId)

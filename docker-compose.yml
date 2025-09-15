@@ -44,8 +44,11 @@ services:
       - Swagger__Password=${SWAGGER_PASSWORD}
       - Gemini__ApiKey=${GEMINI_API_KEY}
       - Gemini__ApiUrl=${GEMINI_API_URL}
+      - DataProtection__KeysDirectory=/keys
     ports:
       - "5015:8080"
+    volumes:
+      - dataprotection_keys:/keys
     depends_on:
       db:
         condition: service_healthy
@@ -59,3 +62,4 @@ services:
 
 volumes:
   sql_data:
+  dataprotection_keys:

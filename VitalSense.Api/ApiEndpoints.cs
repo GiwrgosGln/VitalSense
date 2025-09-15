@@ -25,6 +25,10 @@ public static class ApiEndpoints
         public const string GetById = $"{Base}/{{templateId}}";
         public const string Update = $"{Base}/{{templateId}}";
         public const string Delete = $"{Base}/{{templateId}}";
+        
+        // Questionnaire Submissions
+        public const string SubmitQuestionnaire = $"{Base}/submissions";
+        public const string GetSubmissionsByClientId = $"{Base}/submissions/client/{{clientId}}";
     }
 
     public static class Clients

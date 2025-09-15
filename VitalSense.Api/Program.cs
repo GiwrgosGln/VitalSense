@@ -9,6 +9,8 @@ using VitalSense.Infrastructure.Data;
 using VitalSense.Application.Services;
 using VitalSense.Application.Interfaces;
 using VitalSense.Application.Validators;
+using VitalSense.Shared.Services;
+using Microsoft.AspNetCore.DataProtection;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,6 +27,13 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     }
 });
 
+// Add DataProtection services
+var keysDirectory = builder.Configuration["DataProtection:KeysDirectory"] ?? 
+                   Path.Combine(builder.Environment.ContentRootPath, "keys");
+builder.Services.AddDataProtection()
+    .SetApplicationName("VitalSense")
+    .PersistKeysToFileSystem(new DirectoryInfo(keysDirectory));
+
 // Add services
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IPasswordService, PasswordService>();
@@ -40,6 +49,7 @@ builder.Services.AddScoped<IGoogleCalendarService, GoogleCalendarService>();
 builder.Services.AddScoped<IAppointmentSyncService, AppointmentSyncService>();
 builder.Services.AddScoped<IGeminiService, GeminiService>();
 builder.Services.AddScoped<IQuestionnaireTemplateService, QuestionnaireTemplateService>();
+builder.Services.AddScoped<IEncryptionService, EncryptionService>();
 builder.Services.AddHttpClient();
 
 // Add controllers
