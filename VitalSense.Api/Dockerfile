@@ -25,12 +25,6 @@ RUN dotnet publish VitalSense.Api/VitalSense.Api.csproj -c Release -o /app/publi
 FROM base AS final
 WORKDIR /app
 
-# Install curl for health checks and create wait-for-it script
-RUN apt-get update && apt-get install -y curl netcat-traditional && rm -rf /var/lib/apt/lists/*
-
-# Create wait-for-it script
-RUN echo '#!/bin/bash\n\
-set -e\n\
 host="$1"\n\
 shift\n\
 cmd="$@"\n\
@@ -41,6 +35,9 @@ done\n\
 echo "$host is available"\n\
 exec $cmd' > /app/wait-for-it.sh && chmod +x /app/wait-for-it.sh
 
+# Install curl for health checks
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
 # Create directory for DataProtection keys
 RUN mkdir -p /keys && chmod 700 /keys
 
@@ -49,4 +46,4 @@ COPY --from=build /app/publish .
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
   CMD curl -f http://localhost:8080/health || exit 1
 
-ENTRYPOINT ["./wait-for-it.sh", "db:1433", "--", "dotnet", "VitalSense.Api.dll"]
+ENTRYPOINT ["dotnet", "VitalSense.Api.dll"]
