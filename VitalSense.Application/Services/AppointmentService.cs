@@ -208,31 +208,13 @@ public class AppointmentService : IAppointmentService
 			.ToListAsync();
 	}
 
-	public async Task<IEnumerable<AppointmentWithClientInfoResponse>> GetAllByDieticianAndRangeAsync(Guid dieticianId, DateOnly from, DateOnly to)
+	public async Task<IEnumerable<Appointment>> GetAllByDieticianAndRangeAsync(Guid dieticianId, DateOnly from, DateOnly to)
 	{
 		if (to < from) (from, to) = (to, from);
 		var rangeStart = from.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
 		var rangeEndExclusive = to.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc).AddDays(1);
 		return await _context.Appointments
 			.Where(a => a.DieticianId == dieticianId && a.Start >= rangeStart && a.Start < rangeEndExclusive)
-						.Join(
-				_context.Clients,
-				appointment => appointment.ClientId,
-				client => client.Id,
-				(appointment, client) => new AppointmentWithClientInfoResponse
-				{
-					Id = appointment.Id,
-					Title = appointment.Title,
-					Start = appointment.Start,
-					End = appointment.End,
-					AllDay = appointment.AllDay,
-					DieticianId = appointment.DieticianId,
-					ClientId = appointment.ClientId,
-					ClientFirstName = client.FirstName,
-					ClientLastName = client.LastName,
-					ClientEmail = client.Email,
-					ClientPhone = client.Phone
-				})
 			.OrderBy(a => a.Start)
 			.ToListAsync();
 	}
