@@ -45,7 +45,6 @@ jobs:
             # Create .env file with secrets
 
             cat > .env << 'ENVEOF'
-          SA_PASSWORD=${{ secrets.SA_PASSWORD }}
           JWT_KEY=${{ secrets.JWT_KEY }}
           JWT_ISSUER=${{ secrets.JWT_ISSUER }}
           JWT_AUDIENCE=${{ secrets.JWT_AUDIENCE }}
