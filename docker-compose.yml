@@ -1,30 +1,6 @@
 version: "3.8"
 
 services:
-  db:
-    image: mcr.microsoft.com/mssql/server:2019-CU18-ubuntu-20.04
-    container_name: sqlserver
-    environment:
-      - ACCEPT_EULA=Y
-      - SA_PASSWORD=${SA_PASSWORD}
-      - MSSQL_PID=Express
-      - MSSQL_MEMORY_LIMIT_MB=1024
-    ports:
-      - "1433:1433"
-    volumes:
-      - sql_data:/var/opt/mssql
-    restart: unless-stopped
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P '${SA_PASSWORD}' -Q 'SELECT 1' || exit 1",
-        ]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 30s
-
   api:
     build:
       context: .
@@ -33,7 +9,7 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:8080
-      - ConnectionStrings__DefaultConnection=Server=db;Database=VitalSenseDB;User=sa;Password=${SA_PASSWORD};TrustServerCertificate=True;Connection Timeout=30;
+      - ConnectionStrings__DefaultConnection=Server=tcp:vitalsense.database.windows.net,1433;Initial Catalog=VitalSenseDB;User Id=${SQL_USERNAME};Password=${SQL_PASSWORD};Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;
       - Jwt__Key=${JWT_KEY}
       - Jwt__Issuer=${JWT_ISSUER}
       - Jwt__Audience=${JWT_AUDIENCE}
@@ -49,9 +25,6 @@ services:
       - "5015:8080"
     volumes:
       - dataprotection_keys:/keys
-    depends_on:
-      db:
-        condition: service_healthy
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
@@ -61,5 +34,4 @@ services:
       start_period: 60s
 
 volumes:
-  sql_data:
   dataprotection_keys:
