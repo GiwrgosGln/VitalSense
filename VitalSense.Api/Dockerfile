@@ -25,16 +25,6 @@ RUN dotnet publish VitalSense.Api/VitalSense.Api.csproj -c Release -o /app/publi
 FROM base AS final
 WORKDIR /app
 
-host="$1"\n\
-shift\n\
-cmd="$@"\n\
-until nc -z ${host/:/ }; do\n\
-  echo "Waiting for $host..."\n\
-  sleep 1\n\
-done\n\
-echo "$host is available"\n\
-exec $cmd' > /app/wait-for-it.sh && chmod +x /app/wait-for-it.sh
-
 # Install curl for health checks
 RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
