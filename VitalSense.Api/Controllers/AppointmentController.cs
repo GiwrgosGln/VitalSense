@@ -59,7 +59,7 @@ public class AppointmentController : ControllerBase
 
 	[HttpGet(ApiEndpoints.Appointments.GetByDate)]
 	[Authorize]
-	[ProducesResponseType(typeof(IEnumerable<AppointmentResponse>), StatusCodes.Status200OK)]
+	[ProducesResponseType(typeof(IEnumerable<AppointmentWithClientInfoResponse>), StatusCodes.Status200OK)]
 	public async Task<IActionResult> GetByDate([FromRoute] string date)
 	{
 		if (!TryGetDieticianId(out var dieticianId)) return Unauthorized();
@@ -68,7 +68,7 @@ public class AppointmentController : ControllerBase
 			return BadRequest(new { error = "Invalid date format. Use YYYY-MM-DD." });
 		}
 		var appts = await _appointmentService.GetAllByDieticianAndDateAsync(dieticianId, dateOnly);
-		return Ok(appts.Select(ToResponse));
+		return Ok(appts);
 	}
 
 	[HttpGet(ApiEndpoints.Appointments.GetByRange)]
