@@ -14,9 +14,7 @@ public class CreateClientRequest
     [MaxLength(50, ErrorMessage = "Last Name cannot exceed 50 characters.")]
     public required string LastName { get; set; }
 
-    [Required]
     [EmailAddress]
-    [MaxLength(255, ErrorMessage = "Email cannot exceed 255 characters.")]
     public required string Email { get; set; }
     public string? Phone { get; set; }
     public DateTime? DateOfBirth { get; set; }
