@@ -1,5 +1,11 @@
+import { DashboardLayout } from "@/components/layouts/dashboard-layout";
+
 const DashboardRoute = () => {
-  return <>Hello</>;
+  return (
+    <DashboardLayout>
+      <h1>Dashboard</h1>
+    </DashboardLayout>
+  );
 };
 
 export default DashboardRoute;
