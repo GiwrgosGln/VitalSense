@@ -3,6 +3,11 @@ import { createBrowserRouter } from "react-router";
 import { RouterProvider } from "react-router/dom";
 import { paths } from "@/config/paths";
 import { useMemo } from "react";
+import { ProtectedRoute } from "@/lib/auth";
+import {
+  default as AppRoot,
+  ErrorBoundary as AppRootErrorBoundary,
+} from "./routes/app/root";
 
 const convert = (queryClient: QueryClient) => (m: any) => {
   const { clientLoader, clientAction, default: Component, ...rest } = m;
@@ -31,6 +36,22 @@ export const createAppRouter = (queryClient: QueryClient) =>
     {
       path: "*",
       lazy: () => import("./routes/not-found").then(convert(queryClient)),
+    },
+    {
+      path: paths.app.root.path,
+      element: (
+        <ProtectedRoute>
+          <AppRoot />
+        </ProtectedRoute>
+      ),
+      ErrorBoundary: AppRootErrorBoundary,
+      children: [
+        {
+          path: paths.app.dashboard.path,
+          lazy: () =>
+            import("./routes/app/dashboard").then(convert(queryClient)),
+        },
+      ],
     },
   ]);
 

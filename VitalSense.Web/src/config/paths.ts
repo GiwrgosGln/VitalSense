@@ -3,6 +3,7 @@ export const paths = {
     path: "/",
     getHref: () => "/",
   },
+
   auth: {
     register: {
       path: "/auth/register",
@@ -17,6 +18,17 @@ export const paths = {
         `/auth/login${
           redirectTo ? `?redirectTo=${encodeURIComponent(redirectTo)}` : ""
         }`,
+    },
+  },
+
+  app: {
+    root: {
+      path: "/app",
+      getHref: () => "/app",
+    },
+    dashboard: {
+      path: "/app/dashboard",
+      getHref: () => "/app/dashboard",
     },
   },
 } as const;
