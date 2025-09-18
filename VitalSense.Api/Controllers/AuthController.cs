@@ -54,10 +54,22 @@ public class AuthController : ControllerBase
 
         var response = await _authService.RegisterAsync(request);
 
-        if (response == null)
+        if (response == null || !response.Success)
         {
             return BadRequest(new { message = "Registration failed. Username or email may already be taken, or password/username is invalid." });
         }
+
+        Response.Cookies.Append(
+            "refreshToken",
+            response.RefreshToken,
+            new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.Strict,
+                Expires = response.RefreshTokenExpiry
+            }
+        );
 
         return Created(string.Empty, response);
     }
