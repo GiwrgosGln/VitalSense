@@ -18,7 +18,7 @@ export const AuthLayout = ({ children, title }: LayoutProps) => {
 
   useEffect(() => {
     if (user.data) {
-      navigate(redirectTo ? redirectTo : paths.home.getHref(), {
+      navigate(redirectTo ? redirectTo : paths.app.dashboard.getHref(), {
         replace: true,
       });
     }

@@ -4,6 +4,7 @@ import { api } from "./api-client";
 import z from "zod";
 import { Navigate, useLocation } from "react-router-dom";
 import { paths } from "@/config/paths";
+import { useAuthStore } from "@/store/auth-store";
 
 const getUser = async (): Promise<User> => {
   const response = await api.get("auth/me");
@@ -25,7 +26,7 @@ export type LoginInput = z.infer<typeof loginInputSchema>;
 const loginWithUsernameAndPassword = (
   data: LoginInput
 ): Promise<AuthResponse> => {
-  return api.post("/auth/login", data);
+  return api.post("/auth/login", data).then((res) => res.data);
 };
 
 export const registerInputSchema = z
@@ -66,13 +67,14 @@ export type RegisterInput = z.infer<typeof registerInputSchema>;
 const registerWithUsernameEmailAndPassword = (
   data: RegisterInput
 ): Promise<AuthResponse> => {
-  return api.post("/auth/register", data);
+  return api.post("/auth/register", data).then((res) => res.data);
 };
 
 const authConfig = {
   userFn: getUser,
   loginFn: async (data: LoginInput) => {
     const response = await loginWithUsernameAndPassword(data);
+    useAuthStore.getState().setAccessToken(response.accessToken);
     return response.user;
   },
   registerFn: async (data: RegisterInput) => {
