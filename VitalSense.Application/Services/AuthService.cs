@@ -51,8 +51,13 @@ public class AuthService : IAuthService
             AccessTokenExpiry = _tokenService.GetAccessTokenExpiry(),
             RefreshToken = refreshToken,
             RefreshTokenExpiry = user.RefreshTokenExpiry,
-            UserId = user.Id,
-            Username = user.Username,
+            User = new UserDto
+            {
+                Id = user.Id,
+                Username = user.Username,
+                Email = user.Email,
+                CreatedAt = user.CreatedAt
+            }
         };
     }
 
@@ -95,8 +100,13 @@ public class AuthService : IAuthService
         {
             Success = true,
             Message = "Registration successful.",
-            UserId = user.Id,
-            Username = user.Username,
+            User = new UserDto
+            {
+                Id = user.Id,
+                Username = user.Username,
+                Email = user.Email,
+                CreatedAt = user.CreatedAt
+            },
             AccessToken = _tokenService.GenerateAccessToken(user),
             AccessTokenExpiry = _tokenService.GetAccessTokenExpiry(),
             RefreshToken = refreshToken,
@@ -125,7 +135,14 @@ public class AuthService : IAuthService
             AccessToken = newAccessToken,
             AccessTokenExpiry = _tokenService.GetAccessTokenExpiry(),
             RefreshToken = newRefreshToken,
-            RefreshTokenExpiry = user.RefreshTokenExpiry
+            RefreshTokenExpiry = user.RefreshTokenExpiry,
+            User = new UserDto
+            {
+                Id = user.Id,
+                Username = user.Username,
+                Email = user.Email,
+                CreatedAt = user.CreatedAt
+            }
         };
     }
 
