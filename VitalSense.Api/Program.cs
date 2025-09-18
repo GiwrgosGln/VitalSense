@@ -129,17 +129,21 @@ builder.Services.AddValidatorsFromAssemblyContaining<LoginRequestValidator>();
 // Enable Cors
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
+    options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.AllowAnyOrigin()
+        policy.WithOrigins(
+            "http://localhost:5173",
+            "https://www.vitalsense.gr"
+        )
               .AllowAnyHeader()
-              .AllowAnyMethod();
+              .AllowAnyMethod()
+              .AllowCredentials();
     });
 });
 
 var app = builder.Build();
 
-app.UseCors("AllowAll");
+app.UseCors("AllowFrontend");
 
 using (var scope = app.Services.CreateScope())
 {

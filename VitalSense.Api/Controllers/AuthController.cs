@@ -25,11 +25,20 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
         var response = await _authService.LoginAsync(request);
-
         if (response == null)
-        {
-            return Unauthorized(new { message = "Invalid username or password" });
-        }
+            return Unauthorized();
+
+        Response.Cookies.Append(
+            "refreshToken",
+            response.RefreshToken,
+            new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.Strict,
+                Expires = response.RefreshTokenExpiry
+            }
+        );
 
         return Ok(response);
     }
@@ -63,12 +72,35 @@ public class AuthController : ControllerBase
             return BadRequest(ModelState);
         }
 
-        var response = await _authService.RefreshTokenAsync(request);
+        var refreshToken = request.RefreshToken;
+        if (string.IsNullOrEmpty(refreshToken))
+        {
+            refreshToken = Request.Cookies["refreshToken"];
+        }
+
+        if (string.IsNullOrEmpty(refreshToken))
+        {
+            return Unauthorized(new { message = "No refresh token provided." });
+        }
+
+        var response = await _authService.RefreshTokenAsync(new RefreshTokenRequest { RefreshToken = refreshToken });
 
         if (response == null)
         {
             return Unauthorized(new { message = "Invalid or expired refresh token." });
         }
+
+        Response.Cookies.Append(
+            "refreshToken",
+            response.RefreshToken,
+            new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.Strict,
+                Expires = response.RefreshTokenExpiry
+            }
+        );
 
         return Ok(response);
     }
