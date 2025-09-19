@@ -24,13 +24,20 @@ public class AuthController : ControllerBase
 
     private CookieOptions GetSecureCookieOptions(DateTime? expiry)
     {
-        return new CookieOptions
+        var cookieOptions = new CookieOptions
         {
             HttpOnly = true,
             Secure = !_environment.IsDevelopment() || HttpContext.Request.IsHttps,
-            SameSite = _environment.IsDevelopment() ? SameSiteMode.Lax : SameSiteMode.Strict,
+            SameSite = SameSiteMode.None,
             Expires = expiry
         };
+        
+        if (!_environment.IsDevelopment())
+        {
+            cookieOptions.Domain = ".vitalsense.gr";
+        }
+        
+        return cookieOptions;
     }
 
     [HttpPost(ApiEndpoints.Users.Login)]
@@ -41,10 +48,13 @@ public class AuthController : ControllerBase
         if (response == null)
             return Unauthorized();
 
+        var cookieOptions = GetSecureCookieOptions(response.RefreshTokenExpiry);
+        Console.WriteLine($"Setting cookie: Domain={cookieOptions.Domain}, SameSite={cookieOptions.SameSite}, Secure={cookieOptions.Secure}");
+
         Response.Cookies.Append(
             "refreshToken",
             response.RefreshToken,
-            GetSecureCookieOptions(response.RefreshTokenExpiry)
+            cookieOptions
         );
 
         return Ok(response);
@@ -85,11 +95,13 @@ public class AuthController : ControllerBase
         {
             refreshToken = Request.Cookies["refreshToken"];
             
-            if (_environment.IsDevelopment())
-            {
-                var allCookies = string.Join(", ", Request.Cookies.Select(c => $"{c.Key}={c.Value}"));
-                Console.WriteLine($"Cookies: {allCookies}");
-            }
+            // Log all cookies and headers to help with debugging
+            var allCookies = string.Join(", ", Request.Cookies.Select(c => $"{c.Key}={c.Value}"));
+            var allHeaders = string.Join(", ", Request.Headers.Select(h => $"{h.Key}={string.Join(",", h.Value.ToArray())}"));
+            
+            Console.WriteLine($"Request Origin: {Request.Headers["Origin"]}");
+            Console.WriteLine($"Cookies: {allCookies}");
+            Console.WriteLine($"Headers: {allHeaders}");
         }
 
         if (string.IsNullOrEmpty(refreshToken))
