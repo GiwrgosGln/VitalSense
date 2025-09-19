@@ -213,6 +213,11 @@ public class GoogleAuthService : IGoogleAuthService
         }
     }
 
+    public async Task<GoogleTokenResponse?> RefreshTokenDirectAsync(string refreshToken)
+    {
+        return await RefreshTokenAsync(refreshToken);
+    }
+
     private async Task<GoogleTokenResponse?> RefreshTokenAsync(string refreshToken)
     {
         try

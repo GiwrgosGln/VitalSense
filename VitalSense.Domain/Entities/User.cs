@@ -49,5 +49,8 @@ public class User
     [Column("google_token_expiry")]
     public DateTime? GoogleTokenExpiry { get; set; }
 
-    public bool IsGoogleCalendarConnected => !string.IsNullOrEmpty(GoogleAccessToken);
+    public bool IsGoogleCalendarConnected => !string.IsNullOrEmpty(GoogleAccessToken) && 
+                                         !string.IsNullOrEmpty(GoogleRefreshToken) && 
+                                         GoogleTokenExpiry.HasValue && 
+                                         GoogleTokenExpiry > DateTime.UtcNow;
 }

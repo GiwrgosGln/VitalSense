@@ -56,21 +56,57 @@ public class AppointmentSyncService : IAppointmentSyncService
 
         _logger.LogInformation("Syncing {Count} future appointments for user {UserId}", totalCount, userId);
 
-        foreach (var appointment in upcomingAppointments)
+        foreach (var appointmentInfo in upcomingAppointments)
         {
             try
             {
+                _logger.LogInformation("Processing appointment {AppointmentId}, GoogleEventId: {GoogleEventId}", 
+                    appointmentInfo.Id, appointmentInfo.GoogleEventId ?? "NULL");
+                
+                var appointment = new Domain.Entities.Appointment
+                {
+                    Id = appointmentInfo.Id,
+                    Title = appointmentInfo.Title,
+                    Start = appointmentInfo.Start,
+                    End = appointmentInfo.End,
+                    AllDay = appointmentInfo.AllDay,
+                    DieticianId = appointmentInfo.DieticianId,
+                    ClientId = appointmentInfo.ClientId,
+                    GoogleEventId = appointmentInfo.GoogleEventId
+                };
+                
+                _logger.LogInformation("Attempting to sync appointment {AppointmentId} with GoogleEventId: {GoogleEventId}", 
+                    appointment.Id, appointment.GoogleEventId ?? "NULL");
+                
                 var success = await _googleCalendarService.SyncAppointmentToGoogleAsync(appointment, user);
                 
                 if (success)
                 {
-                    if (appointment.GoogleEventId != null)
+                    var existingAppointment = await _appointmentService.GetByIdAsync(appointment.Id);
+                    if (existingAppointment != null && existingAppointment.GoogleEventId != appointment.GoogleEventId)
                     {
-                        await _appointmentService.UpdateAsync(appointment.Id, appointment);
+                        existingAppointment.GoogleEventId = appointment.GoogleEventId;
+                        var updateResult = await _appointmentService.UpdateAsync(existingAppointment.Id, existingAppointment, true);
+                        
+                        if (updateResult != null)
+                        {
+                            syncedCount++;
+                            _logger.LogInformation("Successfully synced appointment {AppointmentId} to Google Calendar with GoogleEventId: {GoogleEventId}", 
+                                appointment.Id, appointment.GoogleEventId ?? "NULL");
+                        }
+                        else
+                        {
+                            failedCount++;
+                            _logger.LogWarning("Failed to update appointment {AppointmentId} in database after Google Calendar sync", 
+                                appointment.Id);
+                        }
                     }
-                    
-                    syncedCount++;
-                    _logger.LogInformation("Successfully synced appointment {AppointmentId} to Google Calendar", appointment.Id);
+                    else
+                    {
+                        syncedCount++;
+                        _logger.LogInformation("Appointment {AppointmentId} already synced with GoogleEventId: {GoogleEventId}", 
+                            appointment.Id, appointment.GoogleEventId ?? "NULL");
+                    }
                 }
                 else
                 {
@@ -81,7 +117,8 @@ public class AppointmentSyncService : IAppointmentSyncService
             catch (Exception ex)
             {
                 failedCount++;
-                _logger.LogError(ex, "Error syncing appointment {AppointmentId} to Google Calendar", appointment.Id);
+                _logger.LogError(ex, "Error syncing appointment {AppointmentId} to Google Calendar. Exception: {ExceptionMessage}", 
+                    appointmentInfo.Id, ex.Message);
             }
         }
 

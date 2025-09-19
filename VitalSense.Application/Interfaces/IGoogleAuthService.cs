@@ -10,4 +10,5 @@ public interface IGoogleAuthService
     Task<GoogleCalendarStatusResponse> GetConnectionStatusAsync(Guid userId);
     Task<string?> GetValidAccessTokenAsync(Guid userId);
     Task<bool> RefreshUserTokenAsync(Guid userId);
+    Task<GoogleTokenResponse?> RefreshTokenDirectAsync(string refreshToken);
 }

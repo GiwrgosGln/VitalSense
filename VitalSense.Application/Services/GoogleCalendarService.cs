@@ -232,12 +232,35 @@ public class GoogleCalendarService : IGoogleCalendarService
 
     public async Task<bool> UpdateAppointmentInGoogleAsync(Appointment appointment, User user)
     {
-        if (user?.IsGoogleCalendarConnected != true) return false;
+        if (string.IsNullOrEmpty(user.GoogleAccessToken) || 
+            string.IsNullOrEmpty(user.GoogleRefreshToken) || 
+            user.GoogleTokenExpiry <= DateTime.UtcNow)
+        {
+            _logger.LogWarning("User {UserId} doesn't have valid Google credentials", appointment.DieticianId);
+            return false;
+        }
 
         try
         {
-            var accessToken = await GetValidAccessTokenAsync(user);
-            if (accessToken == null) return false;
+            var accessToken = user.GoogleAccessToken;
+            
+            // Check if we need to refresh the token
+            if (user.GoogleTokenExpiry <= DateTime.UtcNow.AddMinutes(5))
+            {
+                _logger.LogInformation("Access token expired or close to expiry, refresh needed. Current expiry: {Expiry}", user.GoogleTokenExpiry);
+                
+                var newToken = await _googleAuthService.RefreshTokenDirectAsync(user.GoogleRefreshToken);
+                if (newToken != null && !string.IsNullOrEmpty(newToken.AccessToken))
+                {
+                    accessToken = newToken.AccessToken;
+                    _logger.LogInformation("Successfully refreshed token directly");
+                }
+                else
+                {
+                    _logger.LogWarning("Failed to refresh token");
+                    return false;
+                }
+            }
 
             var googleEvent = CreateGoogleEvent(appointment);
             
@@ -287,12 +310,36 @@ public class GoogleCalendarService : IGoogleCalendarService
 
     public async Task<(bool Success, string? EventId)> CreateAppointmentInGoogleAsync(Appointment appointment, User user)
     {
-        if (user?.IsGoogleCalendarConnected != true) return (false, null);
+        if (string.IsNullOrEmpty(user.GoogleAccessToken) || 
+            string.IsNullOrEmpty(user.GoogleRefreshToken) || 
+            user.GoogleTokenExpiry <= DateTime.UtcNow)
+        {
+            _logger.LogWarning("User {UserId} doesn't have valid Google credentials", appointment.DieticianId);
+            return (false, null);
+        }
 
         try
         {
-            var accessToken = await GetValidAccessTokenAsync(user);
-            if (accessToken == null) return (false, null);
+            var accessToken = user.GoogleAccessToken;
+            
+            // Check if we need to refresh the token
+            if (user.GoogleTokenExpiry <= DateTime.UtcNow.AddMinutes(5))
+            {
+                _logger.LogInformation("Access token expired or close to expiry, refresh needed. Current expiry: {Expiry}", user.GoogleTokenExpiry);
+                
+                // Direct refresh without using UserService to avoid DB context issues
+                var newToken = await _googleAuthService.RefreshTokenDirectAsync(user.GoogleRefreshToken);
+                if (newToken != null && !string.IsNullOrEmpty(newToken.AccessToken))
+                {
+                    accessToken = newToken.AccessToken;
+                    _logger.LogInformation("Successfully refreshed token directly");
+                }
+                else
+                {
+                    _logger.LogWarning("Failed to refresh token");
+                    return (false, null);
+                }
+            }
 
             var googleEvent = CreateGoogleEvent(appointment);
             

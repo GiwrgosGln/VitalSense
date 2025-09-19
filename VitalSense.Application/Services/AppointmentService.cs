@@ -83,46 +83,164 @@ public class AppointmentService : IAppointmentService
 		}
 	}
 
-	public async Task<Appointment?> UpdateAsync(Guid appointmentId, Appointment updated)
+	public async Task<Appointment?> UpdateAsync(Guid appointmentId, Appointment updated, bool skipGoogleSync = false)
 	{
 		var existing = await _context.Appointments.FirstOrDefaultAsync(a => a.Id == appointmentId);
 		if (existing == null) return null;
 
-		// Store the GoogleEventId before updating other fields
-		var googleEventId = existing.GoogleEventId;
+		var user = skipGoogleSync ? null : await _context.Users
+			.AsNoTracking()
+			.FirstOrDefaultAsync(u => u.Id == existing.DieticianId);
+
+		bool isGoogleCalendarConnected = user?.IsGoogleCalendarConnected ?? false;
+		string? googleAccessToken = user?.GoogleAccessToken;
+		string? googleRefreshToken = user?.GoogleRefreshToken;
+		DateTime? googleTokenExpiry = user?.GoogleTokenExpiry;
+		Guid dieticianId = existing.DieticianId;
 
 		existing.Title = updated.Title;
 		existing.Start = updated.Start;
 		existing.End = updated.End;
 		existing.AllDay = updated.AllDay;
 		existing.ClientId = updated.ClientId;
-		// Keep the original GoogleEventId
-		existing.GoogleEventId = googleEventId;
+		
+		if (updated.GoogleEventId != null)
+		{
+			existing.GoogleEventId = updated.GoogleEventId;
+		}
 
 		await _context.SaveChangesAsync();
 
-		// Get user data BEFORE starting background task (while context is still active)
-		var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == existing.DieticianId);
+		var appointmentForGoogle = new Appointment
+		{
+			Id = existing.Id,
+			Title = existing.Title,
+			Start = existing.Start,
+			End = existing.End,
+			AllDay = existing.AllDay,
+			ClientId = existing.ClientId,
+			DieticianId = existing.DieticianId,
+			GoogleEventId = existing.GoogleEventId
+		};
 
-		// Sync with Google Calendar (but don't wait for it to complete)
-		_ = UpdateGoogleCalendarAsync(existing, user);
+		if (!skipGoogleSync && isGoogleCalendarConnected)
+		{
+			try
+			{
+				var userForGoogle = new Domain.Entities.User
+				{
+					Id = dieticianId,
+					GoogleAccessToken = googleAccessToken,
+					GoogleRefreshToken = googleRefreshToken,
+					GoogleTokenExpiry = googleTokenExpiry
+				};
+
+				await SyncAppointmentWithGoogleCalendarAsync(appointmentForGoogle, userForGoogle);
+				
+				if (appointmentForGoogle.GoogleEventId != existing.GoogleEventId)
+				{
+					var refreshedAppointment = await _context.Appointments.FindAsync(appointmentId);
+					if (refreshedAppointment != null)
+					{
+						refreshedAppointment.GoogleEventId = appointmentForGoogle.GoogleEventId;
+						await _context.SaveChangesAsync();
+					}
+				}
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine($"ERROR: Exception during Google Calendar sync: {ex.Message}");
+			}
+		}
 
 		return existing;
+	}
+
+	private async Task SyncAppointmentWithGoogleCalendarAsync(Appointment appointment, User user)
+	{
+		try
+		{
+			bool isConnected = !string.IsNullOrEmpty(user.GoogleAccessToken) && 
+                              !string.IsNullOrEmpty(user.GoogleRefreshToken) && 
+                              user.GoogleTokenExpiry > DateTime.UtcNow;
+			
+			if (isConnected)
+			{
+				if (string.IsNullOrEmpty(appointment.GoogleEventId))
+				{
+					Console.WriteLine($"WARNING: Cannot update appointment {appointment.Id} in Google Calendar - no GoogleEventId found");
+					
+					var result = await _googleCalendarService.CreateAppointmentInGoogleAsync(appointment, user);
+					if (result.Success && !string.IsNullOrEmpty(result.EventId))
+					{
+						appointment.GoogleEventId = result.EventId;
+						Console.WriteLine($"SUCCESS: Created new Google Calendar event for appointment {appointment.Id} with event ID {result.EventId}");
+					}
+					
+					return;
+				}
+
+				Console.WriteLine($"INFO: Updating appointment {appointment.Id} in Google Calendar with event ID {appointment.GoogleEventId}");
+				
+				var success = await _googleCalendarService.UpdateAppointmentInGoogleAsync(appointment, user);
+				
+				if (success)
+				{
+					Console.WriteLine($"SUCCESS: Google Calendar update completed for appointment {appointment.Id}");
+				}
+				else
+				{
+					Console.WriteLine($"ERROR: Google Calendar update failed for appointment {appointment.Id}");
+				}
+			}
+			else
+			{
+				Console.WriteLine($"INFO: User {appointment.DieticianId} is not connected to Google Calendar, skipping update");
+			}
+		}
+		catch (Exception ex)
+		{
+			Console.WriteLine($"ERROR: Failed to sync appointment {appointment.Id} with Google Calendar: {ex.Message}");
+			Console.WriteLine($"Exception Type: {ex.GetType().Name}");
+			Console.WriteLine($"Stack Trace: {ex.StackTrace}");
+		}
 	}
 
 	private async Task UpdateGoogleCalendarAsync(Appointment appointment, User? user)
 	{
 		try
 		{
-			if (user != null)
+			if (user?.IsGoogleCalendarConnected == true)
 			{
-				await _googleCalendarService.UpdateAppointmentInGoogleAsync(appointment, user);
-				Console.WriteLine($"SUCCESS: Google Calendar sync completed for appointment {appointment.Id}");
+				if (string.IsNullOrEmpty(appointment.GoogleEventId))
+				{
+					Console.WriteLine($"WARNING: Cannot update appointment {appointment.Id} in Google Calendar - no GoogleEventId found");
+					return;
+				}
+
+				Console.WriteLine($"INFO: Updating appointment {appointment.Id} in Google Calendar with event ID {appointment.GoogleEventId}");
+				
+				var success = await _googleCalendarService.UpdateAppointmentInGoogleAsync(appointment, user);
+				
+				if (success)
+				{
+					Console.WriteLine($"SUCCESS: Google Calendar update completed for appointment {appointment.Id}");
+				}
+				else
+				{
+					Console.WriteLine($"ERROR: Google Calendar update failed for appointment {appointment.Id}");
+				}
+			}
+			else
+			{
+				Console.WriteLine($"INFO: User {appointment.DieticianId} is not connected to Google Calendar, skipping update");
 			}
 		}
 		catch (Exception ex)
 		{
 			Console.WriteLine($"ERROR: Failed to sync appointment {appointment.Id} with Google Calendar: {ex.Message}");
+			Console.WriteLine($"Exception Type: {ex.GetType().Name}");
+			Console.WriteLine($"Stack Trace: {ex.StackTrace}");
 		}
 	}
 
@@ -208,13 +326,32 @@ public class AppointmentService : IAppointmentService
 			.ToListAsync();
 	}
 
-	public async Task<IEnumerable<Appointment>> GetAllByDieticianAndRangeAsync(Guid dieticianId, DateOnly from, DateOnly to)
+	public async Task<IEnumerable<AppointmentWithClientInfoResponse>> GetAllByDieticianAndRangeAsync(Guid dieticianId, DateOnly from, DateOnly to)
 	{
 		if (to < from) (from, to) = (to, from);
 		var rangeStart = from.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
 		var rangeEndExclusive = to.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc).AddDays(1);
 		return await _context.Appointments
 			.Where(a => a.DieticianId == dieticianId && a.Start >= rangeStart && a.Start < rangeEndExclusive)
+			.Join(
+				_context.Clients,
+				appointment => appointment.ClientId,
+				client => client.Id,
+				(appointment, client) => new AppointmentWithClientInfoResponse
+				{
+					Id = appointment.Id,
+					Title = appointment.Title,
+					Start = appointment.Start,
+					End = appointment.End,
+					AllDay = appointment.AllDay,
+					DieticianId = appointment.DieticianId,
+					ClientId = appointment.ClientId,
+					GoogleEventId = appointment.GoogleEventId,
+					ClientFirstName = client.FirstName,
+					ClientLastName = client.LastName,
+					ClientEmail = client.Email,
+					ClientPhone = client.Phone
+				})
 			.OrderBy(a => a.Start)
 			.ToListAsync();
 	}
