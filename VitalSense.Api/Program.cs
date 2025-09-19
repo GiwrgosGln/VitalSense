@@ -133,7 +133,8 @@ builder.Services.AddCors(options =>
     {
         policy.WithOrigins(
             "http://localhost:5173",
-            "https://www.vitalsense.gr"
+            "https://www.vitalsense.gr",
+            "https://vital-sense.vercel.app/"
         )
               .AllowAnyHeader()
               .AllowAnyMethod()
