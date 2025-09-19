@@ -14,10 +14,23 @@ namespace VitalSense.Api.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
+    private readonly IWebHostEnvironment _environment;
 
-    public AuthController(IAuthService authService)
+    public AuthController(IAuthService authService, IWebHostEnvironment environment)
     {
         _authService = authService;
+        _environment = environment;
+    }
+
+    private CookieOptions GetSecureCookieOptions(DateTime? expiry)
+    {
+        return new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = !_environment.IsDevelopment() || HttpContext.Request.IsHttps,
+            SameSite = _environment.IsDevelopment() ? SameSiteMode.Lax : SameSiteMode.Strict,
+            Expires = expiry
+        };
     }
 
     [HttpPost(ApiEndpoints.Users.Login)]
@@ -31,13 +44,7 @@ public class AuthController : ControllerBase
         Response.Cookies.Append(
             "refreshToken",
             response.RefreshToken,
-            new CookieOptions
-            {
-                HttpOnly = true,
-                Secure = true,
-                SameSite = SameSiteMode.Strict,
-                Expires = response.RefreshTokenExpiry
-            }
+            GetSecureCookieOptions(response.RefreshTokenExpiry)
         );
 
         return Ok(response);
@@ -62,13 +69,7 @@ public class AuthController : ControllerBase
         Response.Cookies.Append(
             "refreshToken",
             response.RefreshToken,
-            new CookieOptions
-            {
-                HttpOnly = true,
-                Secure = true,
-                SameSite = SameSiteMode.Strict,
-                Expires = response.RefreshTokenExpiry
-            }
+            GetSecureCookieOptions(response.RefreshTokenExpiry)
         );
 
         return Created(string.Empty, response);
@@ -79,15 +80,16 @@ public class AuthController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request)
     {
-        if (!ModelState.IsValid)
-        {
-            return BadRequest(ModelState);
-        }
-
-        var refreshToken = request.RefreshToken;
+        var refreshToken = request?.RefreshToken;
         if (string.IsNullOrEmpty(refreshToken))
         {
             refreshToken = Request.Cookies["refreshToken"];
+            
+            if (_environment.IsDevelopment())
+            {
+                var allCookies = string.Join(", ", Request.Cookies.Select(c => $"{c.Key}={c.Value}"));
+                Console.WriteLine($"Cookies: {allCookies}");
+            }
         }
 
         if (string.IsNullOrEmpty(refreshToken))
@@ -105,13 +107,7 @@ public class AuthController : ControllerBase
         Response.Cookies.Append(
             "refreshToken",
             response.RefreshToken,
-            new CookieOptions
-            {
-                HttpOnly = true,
-                Secure = true,
-                SameSite = SameSiteMode.Strict,
-                Expires = response.RefreshTokenExpiry
-            }
+            GetSecureCookieOptions(response.RefreshTokenExpiry)
         );
 
         return Ok(response);
