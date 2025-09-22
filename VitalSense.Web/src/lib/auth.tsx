@@ -90,6 +90,11 @@ export const { useUser, useLogin, useLogout, useRegister, AuthLoader } =
 export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const user = useUser();
   const location = useLocation();
+  const isRefreshing = useAuthStore((s) => s.isRefreshing);
+
+  if (isRefreshing || user.isLoading) {
+    return <h1>Refreshing...</h1>;
+  }
 
   if (!user.data) {
     return (
