@@ -1,11 +1,19 @@
-import { Calendar, Home, Settings, Users } from "lucide-react";
+import {
+  Calendar,
+  Frame,
+  LayoutDashboard,
+  PieChart,
+  Users,
+} from "lucide-react";
 
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
+  SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -13,12 +21,15 @@ import {
 import { paths } from "@/config/paths";
 import { Link } from "react-router-dom";
 
-// Menu items.
+import logo from "@/assets/logo.png";
+import { NavUser } from "./nav-user";
+import { useAuthStore } from "@/store/auth-store";
+
 const items = [
   {
-    title: "Home",
+    title: "Dashboard",
     url: paths.app.dashboard.path,
-    icon: Home,
+    icon: LayoutDashboard,
   },
   {
     title: "Calendar",
@@ -30,16 +41,59 @@ const items = [
     url: paths.app.clients.path,
     icon: Users,
   },
+];
+
+const quickActions = [
   {
-    title: "Settings",
-    url: paths.app.settings.path,
-    icon: Settings,
+    name: "Create Client",
+    url: "#",
+    icon: Frame,
+  },
+  {
+    name: "Start Questionnaire",
+    url: "#",
+    icon: PieChart,
+  },
+  {
+    name: "Create Meal Plan",
+    url: "#",
+    icon: Map,
   },
 ];
 
 export function AppSidebar() {
+  const user = useAuthStore((state) => state.user);
+
+  const navUser = user
+    ? {
+        name: user.username,
+        email: user.email,
+        avatar: "",
+      }
+    : {
+        name: "",
+        email: "",
+        avatar: "",
+      };
   return (
-    <Sidebar>
+    <Sidebar className="top-(--header-height) h-[calc(100svh-var(--header-height))]!">
+      <SidebarHeader>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton size="lg" asChild>
+              <a href="#">
+                <div className="flex aspect-square size-8 items-center justify-center rounded-lg">
+                  <img src={logo} alt="Vital Sense" />
+                </div>
+                <div className="grid flex-1 text-left text-sm leading-tight">
+                  <span className="truncate font-medium">Vital Sense</span>
+                  <span className="truncate text-xs">Management System</span>
+                </div>
+              </a>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel>Vital Sense</SidebarGroupLabel>
@@ -58,7 +112,26 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+        <SidebarGroup>
+          <SidebarGroupLabel>Quick Actions</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {quickActions.map((item) => (
+                <SidebarMenuItem key={item.name}>
+                  <SidebarMenuButton asChild>
+                    <Link to={item.url}>
+                      <span>{item.name}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
+      <SidebarFooter>
+        <NavUser user={navUser} />
+      </SidebarFooter>
     </Sidebar>
   );
 }

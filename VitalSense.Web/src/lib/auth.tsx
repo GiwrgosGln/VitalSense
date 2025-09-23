@@ -8,7 +8,7 @@ import { useAuthStore } from "@/store/auth-store";
 
 const getUser = async (): Promise<User> => {
   const response = await api.get("auth/me");
-
+  useAuthStore.getState().setUser(response.data);
   return response.data;
 };
 

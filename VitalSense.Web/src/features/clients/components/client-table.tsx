@@ -94,7 +94,7 @@ export function ClientsTable<TData, TValue>({
                   data-state={row.getIsSelected() && "selected"}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} width={"200px"}>
+                    <TableCell key={cell.id} width={"300px"}>
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext()

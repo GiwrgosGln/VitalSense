@@ -75,7 +75,7 @@ export const columns: ColumnDef<Client>[] = [
   {
     id: "actions",
     cell: ({ row }) => {
-      const payment = row.original;
+      const client = row.original;
 
       return (
         <DropdownMenu>
@@ -89,7 +89,7 @@ export const columns: ColumnDef<Client>[] = [
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem
-              onClick={() => navigator.clipboard.writeText(payment.id)}
+              onClick={() => navigator.clipboard.writeText(client.id)}
             >
               View Client
             </DropdownMenuItem>
