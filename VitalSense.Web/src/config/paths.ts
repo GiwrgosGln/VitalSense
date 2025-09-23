@@ -30,5 +30,17 @@ export const paths = {
       path: "/app/dashboard",
       getHref: () => "/app/dashboard",
     },
+    calendar: {
+      path: "/app/calendar",
+      getHref: () => "/app/calendar",
+    },
+    clients: {
+      path: "/app/clients",
+      getHref: () => "/app/clients",
+    },
+    settings: {
+      path: "/app/settings",
+      getHref: () => "/app/settings",
+    },
   },
 } as const;
