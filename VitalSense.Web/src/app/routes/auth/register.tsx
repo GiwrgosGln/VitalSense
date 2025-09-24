@@ -8,7 +8,7 @@ const RegisterRoute = () => {
   const [searchParams] = useSearchParams();
   const redirectTo = searchParams.get("redirectTo");
   return (
-    <AuthLayout title="Register your account">
+    <AuthLayout>
       <RegisterForm
         onSuccess={() => {
           navigate(`${redirectTo ? `${redirectTo}` : paths.home.getHref()}`),
