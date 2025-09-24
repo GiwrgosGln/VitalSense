@@ -23,10 +23,12 @@ export const loginInputSchema = z.object({
 
 export type LoginInput = z.infer<typeof loginInputSchema>;
 
-const loginWithUsernameAndPassword = (
+const loginWithUsernameAndPassword = async (
   data: LoginInput
 ): Promise<AuthResponse> => {
-  return api.post("/auth/login", data).then((res) => res.data);
+  const response = await api.post("/auth/login", data).then((res) => res.data);
+  useAuthStore.getState().setUser(response.user);
+  return response;
 };
 
 export const registerInputSchema = z

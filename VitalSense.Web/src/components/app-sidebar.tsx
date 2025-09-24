@@ -76,7 +76,7 @@ export function AppSidebar() {
         avatar: "",
       };
   return (
-    <Sidebar className="top-(--header-height) h-[calc(100svh-var(--header-height))]!">
+    <Sidebar>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>

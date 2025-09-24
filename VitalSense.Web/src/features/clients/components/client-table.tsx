@@ -1,7 +1,6 @@
 import {
   type ColumnDef,
   type ColumnFiltersState,
-  type SortingState,
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
@@ -9,9 +8,11 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
+import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useSearchClient } from "../api/search-client";
 
 import {
   Table,
@@ -22,6 +23,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import React from "react";
+import { Search } from "lucide-react";
 
 interface ClientsTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -30,43 +32,68 @@ interface ClientsTableProps<TData, TValue> {
 
 export function ClientsTable<TData, TValue>({
   columns,
-  data,
+  data: initialData,
 }: ClientsTableProps<TData, TValue>) {
-  const [sorting, setSorting] = React.useState<SortingState>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeSearchQuery, setActiveSearchQuery] = useState("");
+
+  const { data: searchResults, isLoading } = useSearchClient({
+    q: activeSearchQuery,
+    queryConfig: {
+      enabled: activeSearchQuery.length > 0,
+    },
+  });
+
+  const data =
+    activeSearchQuery && searchResults?.data
+      ? (searchResults.data as unknown as TData[])
+      : initialData;
+
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
   );
+
+  const handleSearch = () => {
+    setActiveSearchQuery(searchQuery);
+  };
 
   const table = useReactTable({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    onSortingChange: setSorting,
+    getSortedRowModel: getSortedRowModel(),
     onColumnFiltersChange: setColumnFilters,
     getFilteredRowModel: getFilteredRowModel(),
-    getSortedRowModel: getSortedRowModel(),
     state: {
-      sorting,
       columnFilters,
     },
   });
 
   return (
-    <div className="px-10">
-      <div className="flex items-center py-4">
+    <div className="px-5 md:px-10 max-w-screen w-full">
+      <div className="flex items-center py-4 gap-2">
         <Input
-          placeholder="Search by last name..."
-          value={
-            (table.getColumn("lastName")?.getFilterValue() as string) ?? ""
-          }
-          onChange={(event) =>
-            table.getColumn("lastName")?.setFilterValue(event.target.value)
-          }
-          className="max-w-sm"
+          placeholder="Search clients..."
+          value={searchQuery}
+          onChange={(event) => setSearchQuery(event.target.value)}
+          className="max-w-full md:max-w-sm"
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              handleSearch();
+            }
+          }}
         />
+        <Button
+          onClick={handleSearch}
+          disabled={isLoading}
+          size="icon"
+          variant="outline"
+        >
+          <Search />
+        </Button>
       </div>
-      <div className="overflow-hidden rounded-md border">
+      <div className="flex overflow-hidden rounded-md border">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (

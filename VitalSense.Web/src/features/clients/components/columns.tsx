@@ -1,7 +1,7 @@
 import type { Client } from "@/types/api";
 
 import type { ColumnDef } from "@tanstack/react-table";
-import { MoreHorizontal, ArrowUpDown } from "lucide-react";
+import { MoreHorizontal } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { formatDate } from "@/utils/format";
+import { useDeleteClient } from "../api/delete-client";
 
 export const columns: ColumnDef<Client>[] = [
   {
@@ -21,17 +22,7 @@ export const columns: ColumnDef<Client>[] = [
   },
   {
     accessorKey: "lastName",
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          Last Name
-          <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
-      );
-    },
+    header: "Last Name",
   },
   {
     accessorKey: "email",
@@ -76,6 +67,13 @@ export const columns: ColumnDef<Client>[] = [
     id: "actions",
     cell: ({ row }) => {
       const client = row.original;
+      const { mutate: deleteClient, isPending } = useDeleteClient();
+
+      const handleDelete = () => {
+        if (window.confirm("Are you sure you want to delete this client?")) {
+          deleteClient({ clientId: client.id });
+        }
+      };
 
       return (
         <DropdownMenu>
@@ -95,6 +93,14 @@ export const columns: ColumnDef<Client>[] = [
             </DropdownMenuItem>
             <DropdownMenuItem>Edit Client</DropdownMenuItem>
             <DropdownMenuItem>Create Meal Plan</DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="text-red-500"
+              onClick={handleDelete}
+              disabled={isPending}
+            >
+              {isPending ? "Deleting..." : "Delete Client"}
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       );
