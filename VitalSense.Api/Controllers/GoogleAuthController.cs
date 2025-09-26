@@ -57,7 +57,7 @@ public class GoogleAuthController : ControllerBase
         var response = await _googleAuthService.HandleOAuthCallbackAsync(code, userId);
 
         var redirectUrl =
-            $"http://localhost:5173/settings" +
+            $"https://vitalsense.gr/settings" +
             $"?success={response.Success}" +
             $"&message={Uri.EscapeDataString(response.Message)}";
 
