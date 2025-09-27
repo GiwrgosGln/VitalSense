@@ -97,7 +97,7 @@ public class ClientController : ControllerBase
             FirstName = request.FirstName,
             LastName = request.LastName,
             Email = request.Email,
-            Phone = request.Phone,
+            Phone = request.Phone ?? string.Empty,
             DateOfBirth = request.DateOfBirth,
             Gender = request.Gender,
             HasCard = request.HasCard,
@@ -144,5 +144,38 @@ public class ClientController : ControllerBase
         var deleted = await _clientService.DeleteAsync(clientId);
         if (!deleted) return NotFound();
         return NoContent();
+    }
+    
+    [HttpPost(ApiEndpoints.Clients.ImportClients)]
+    [Authorize]
+    [ProducesResponseType(typeof(ImportClientsResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ImportClients(IFormFile excelFile)
+    {
+        if (excelFile == null || excelFile.Length == 0)
+            return BadRequest("Excel file is required.");
+
+        var dieticianIdClaim = User.FindFirst("userid")?.Value;
+        if (string.IsNullOrEmpty(dieticianIdClaim) || !Guid.TryParse(dieticianIdClaim, out var dieticianId))
+        {
+            return Unauthorized();
+        }
+        
+        try
+        {
+            using var stream = excelFile.OpenReadStream();
+            var result = await _clientService.ImportFromExcelAsync(dieticianId, stream);
+            
+            if (result.SuccessCount == 0 && result.Errors.Any())
+            {
+                return BadRequest(new { message = "Import failed", errors = result.Errors });
+            }
+            
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = "Error processing Excel file", error = ex.Message });
+        }
     }
 }

@@ -40,6 +40,7 @@ public static class ApiEndpoints
         public const string Edit = $"{Base}/{{clientId}}";
         public const string Delete = $"{Base}/{{clientId}}";
         public const string Search = $"{Base}/search";
+        public const string ImportClients = $"{Base}/import";
     }
 
     public static class MealPlans
