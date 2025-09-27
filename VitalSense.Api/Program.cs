@@ -140,6 +140,7 @@ builder.Services.AddCors(options =>
         )
               .AllowAnyHeader()
               .AllowAnyMethod()
+              .SetIsOriginAllowed(origin => true)
               .AllowCredentials();
     });
 });
@@ -147,6 +148,20 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 app.UseCors("AllowFrontend");
+
+app.Use(async (context, next) =>
+{
+    var origin = context.Request.Headers["Origin"].ToString();
+    if (!string.IsNullOrEmpty(origin))
+    {
+        // Only set if not already set by CORS middleware
+        if (!context.Response.Headers.ContainsKey("Access-Control-Allow-Credentials"))
+        {
+            context.Response.Headers.Append("Access-Control-Allow-Credentials", "true");
+        }
+    }
+    await next();
+});
 
 using (var scope = app.Services.CreateScope())
 {

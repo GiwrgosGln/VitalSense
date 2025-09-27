@@ -32,11 +32,6 @@ public class AuthController : ControllerBase
             Expires = expiry
         };
         
-        if (!_environment.IsDevelopment())
-        {
-            cookieOptions.Domain = ".vitalsense.gr";
-        }
-        
         return cookieOptions;
     }
 
@@ -116,10 +111,20 @@ public class AuthController : ControllerBase
             return Unauthorized(new { message = "Invalid or expired refresh token." });
         }
 
+        var cookieOptions = GetSecureCookieOptions(response.RefreshTokenExpiry);
+        
+        // Ensure origin from request is set in response headers for cross-origin requests
+        var origin = Request.Headers["Origin"].ToString();
+        if (!string.IsNullOrEmpty(origin))
+        {
+            Response.Headers["Access-Control-Allow-Origin"] = origin;
+            Response.Headers["Access-Control-Allow-Credentials"] = "true";
+        }
+        
         Response.Cookies.Append(
             "refreshToken",
             response.RefreshToken,
-            GetSecureCookieOptions(response.RefreshTokenExpiry)
+            cookieOptions
         );
 
         return Ok(response);

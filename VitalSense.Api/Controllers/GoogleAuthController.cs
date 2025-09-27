@@ -51,13 +51,13 @@ public class GoogleAuthController : ControllerBase
     {
         if (string.IsNullOrEmpty(code) || !Guid.TryParse(state, out var userId))
         {
-            return Redirect("http://localhost:5173/settings?success=false&message=Invalid%20callback%20parameters");
+            return Redirect("https://vitalsense.gr/settings?success=false&message=Invalid%20callback%20parameters");
         }
 
         var response = await _googleAuthService.HandleOAuthCallbackAsync(code, userId);
 
         var redirectUrl =
-            $"http://localhost:5173/settings" +
+            $"https://vitalsense.gr/settings" +
             $"?success={response.Success}" +
             $"&message={Uri.EscapeDataString(response.Message)}";
 
