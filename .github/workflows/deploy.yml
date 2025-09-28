@@ -55,8 +55,9 @@ jobs:
           GOOGLE_REDIRECT_URI=${{ secrets.GOOGLE_REDIRECT_URL }}
           SWAGGER_USERNAME=${{ secrets.SWAGGER_USERNAME }}
           SWAGGER_PASSWORD=${{ secrets.SWAGGER_PASSWORD }}
-          GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
-          GEMINI_API_URL=${{ secrets.GEMINI_API_URL }}
+          OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}
+          OPENROUTER_API_URL=${{ secrets.OPENROUTER_API_URL }}
+          OPENROUTER_MODEL=${{ secrets.OPENROUTER_MODEL }}
           ENVEOF
             
             # Create directory for encryption keys if it doesn't exist

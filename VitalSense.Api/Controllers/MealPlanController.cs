@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using VitalSense.Api.Endpoints;
 using VitalSense.Application.Services;
 using VitalSense.Application.Interfaces;
+using VitalSense.Api.Models;
 
 namespace VitalSense.Api.Controllers;
 
@@ -85,5 +86,55 @@ public class MealPlanController : ControllerBase
 
         await _mealPlanService.DeleteAsync(mealPlanId);
         return NoContent();
+    }
+
+    [Authorize]
+    [HttpPost(ApiEndpoints.MealPlans.ConvertExcel)]
+    [ProducesResponseType(typeof(CreateMealPlanRequest), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    [RequestSizeLimit(10 * 1024 * 1024)]
+    public async Task<IActionResult> ConvertExcelToMealPlan([FromForm] ExcelConversionRequest request)
+    {
+        if (request.ExcelFile == null || request.ExcelFile.Length == 0)
+            return BadRequest("No Excel file provided.");
+
+        if (request.ExcelFile.Length > 10 * 1024 * 1024)
+            return BadRequest("File size exceeds the maximum limit of 10MB.");
+
+        if (request.ExcelFile.ContentType != "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" &&
+            request.ExcelFile.ContentType != "application/vnd.ms-excel")
+            return BadRequest("Invalid file format. Please upload an Excel file.");
+
+        try
+        {
+            using var memoryStream = new MemoryStream();
+            await request.ExcelFile.CopyToAsync(memoryStream);
+            memoryStream.Position = 0;
+
+            var excelData = memoryStream.ToArray();
+                        
+            var mealPlanRequest = await _mealPlanService.ConvertExcelToMealPlanAsync(
+                excelData, 
+                request.ExcelFile.FileName, 
+                request.DieticianId, 
+                request.ClientId);
+
+            return Ok(mealPlanRequest);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error processing Excel file: {ex.Message}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
+            
+            if (ex.InnerException != null)
+            {
+                Console.WriteLine($"Inner exception: {ex.InnerException.Message}");
+                Console.WriteLine($"Inner stack trace: {ex.InnerException.StackTrace}");
+            }
+            
+            return StatusCode(StatusCodes.Status500InternalServerError, 
+                new { message = "Error processing Excel file", details = ex.Message });
+        }
     }
 }

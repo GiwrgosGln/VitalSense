@@ -47,7 +47,6 @@ builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IGoogleAuthService, GoogleAuthService>();
 builder.Services.AddScoped<IGoogleCalendarService, GoogleCalendarService>();
 builder.Services.AddScoped<IAppointmentSyncService, AppointmentSyncService>();
-builder.Services.AddScoped<IGeminiService, GeminiService>();
 builder.Services.AddScoped<IQuestionnaireTemplateService, QuestionnaireTemplateService>();
 builder.Services.AddScoped<IEncryptionService, EncryptionService>();
 builder.Services.AddHttpClient();

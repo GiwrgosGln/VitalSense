@@ -10,4 +10,5 @@ public interface IMealPlanService
     Task<MealPlanResponse?> GetActiveMealPlanAsync(Guid clientId);
     Task<MealPlanResponse?> UpdateAsync(Guid mealPlanId, UpdateMealPlanRequest request);
     Task DeleteAsync(Guid mealPlanId);
+    Task<CreateMealPlanRequest> ConvertExcelToMealPlanAsync(byte[] excelFileData, string fileName, Guid dieticianId, Guid clientId);
 }

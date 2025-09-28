@@ -18,8 +18,9 @@ services:
       - Google__RedirectUri=${GOOGLE_REDIRECT_URI}
       - Swagger__Username=${SWAGGER_USERNAME}
       - Swagger__Password=${SWAGGER_PASSWORD}
-      - Gemini__ApiKey=${GEMINI_API_KEY}
-      - Gemini__ApiUrl=${GEMINI_API_URL}
+      - OpenRouter__ApiKey=${OPENROUTER_API_KEY}
+      - OpenRouter__ApiUrl=${OPENROUTER_API_URL}
+      - OpenRouter__Model=${OPENROUTER_MODEL}
       - DataProtection__KeysDirectory=/keys
     ports:
       - "5015:8080"
