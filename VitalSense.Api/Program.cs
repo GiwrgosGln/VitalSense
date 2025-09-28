@@ -1,3 +1,4 @@
+using System.IO;
 using System.Text;
 using FluentValidation;
 using FluentValidation.AspNetCore;
@@ -11,6 +12,7 @@ using VitalSense.Application.Interfaces;
 using VitalSense.Application.Validators;
 using VitalSense.Shared.Services;
 using Microsoft.AspNetCore.DataProtection;
+using VitalSense.Application.Mappings;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -50,6 +52,11 @@ builder.Services.AddScoped<IAppointmentSyncService, AppointmentSyncService>();
 builder.Services.AddScoped<IQuestionnaireTemplateService, QuestionnaireTemplateService>();
 builder.Services.AddScoped<IEncryptionService, EncryptionService>();
 builder.Services.AddHttpClient();
+
+var assemblies = AppDomain.CurrentDomain.GetAssemblies()
+    .Where(a => !a.IsDynamic && a.GetName().Name!.StartsWith("VitalSense"))
+    .ToArray();
+builder.Services.AddAutoMapper(assemblies);
 
 // Add controllers
 builder.Services.AddControllers();

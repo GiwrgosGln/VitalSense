@@ -6,46 +6,56 @@ using NPOI.SS.UserModel;
 using NPOI.XSSF.UserModel;
 using NPOI.HSSF.UserModel;
 using System.IO;
+using AutoMapper;
 
 namespace VitalSense.Application.Services;
 
 public class ClientService : IClientService
 {
     private readonly AppDbContext _context;
+    private readonly IMapper _mapper;
 
-    public ClientService(AppDbContext context)
+    public ClientService(AppDbContext context, IMapper mapper)
     {
         _context = context;
+        _mapper = mapper;
     }
 
-    public async Task<Client?> GetByIdAsync(Guid clientId)
-        => await _context.Clients.FindAsync(clientId);
-
-    public async Task<Client> CreateAsync(Client client)
+    public async Task<ClientResponse?> GetByIdAsync(Guid clientId)
     {
+        var client = await _context.Clients
+            .AsNoTracking()
+            .SingleOrDefaultAsync(c => c.Id == clientId);
+
+        return client == null ? null : _mapper.Map<ClientResponse>(client);
+    }
+
+    public async Task<ClientResponse> CreateAsync(CreateClientRequest dto)
+    {
+
+        var client = _mapper.Map<Client>(dto);
+
         client.Id = Guid.NewGuid();
+        client.CreatedAt = DateTime.UtcNow;
+
         await _context.Clients.AddAsync(client);
         await _context.SaveChangesAsync();
-        return client;
+
+        return _mapper.Map<ClientResponse>(client);
     }
 
-    public async Task<Client?> UpdateAsync(Guid clientId, Client updatedClient)
+    public async Task<ClientResponse?> UpdateAsync(Guid clientId, UpdateClientRequest dto)
     {
         var client = await _context.Clients.FindAsync(clientId);
         if (client == null) return null;
 
-        client.FirstName = updatedClient.FirstName;
-        client.LastName = updatedClient.LastName;
-        client.Email = updatedClient.Email;
-        client.Phone = updatedClient.Phone;
-        client.DateOfBirth = updatedClient.DateOfBirth;
-        client.Gender = updatedClient.Gender;
-        client.HasCard = updatedClient.HasCard;
-        client.Notes = updatedClient.Notes;
+        _mapper.Map(dto, client);
+
         client.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
-        return client;
+
+        return _mapper.Map<ClientResponse>(client);
     }
 
     public async Task<bool> DeleteAsync(Guid clientId)
@@ -58,31 +68,37 @@ public class ClientService : IClientService
         return true;
     }
 
-    public async Task<IEnumerable<Client>> GetAllByDieticianAsync(Guid dieticianId)
+    public async Task<IEnumerable<ClientResponse>> GetAllByDieticianAsync(Guid dieticianId, int pageNumber = 1, int pageSize = 20)
     {
-        return await _context.Clients.Where(c => c.DieticianId == dieticianId).ToListAsync();
+        var clients = await _context.Clients
+            .AsNoTracking()
+            .Where(c => c.DieticianId == dieticianId)
+            .OrderBy(c => c.LastName)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return _mapper.Map<List<ClientResponse>>(clients);
     }
 
-    public async Task<IEnumerable<Client>> SearchAsync(Guid dieticianId, string query, int limit = 20)
+    public async Task<IEnumerable<ClientResponse>> SearchAsync(Guid dieticianId, string query, int limit = 20)
     {
-        if (string.IsNullOrWhiteSpace(query))
-        {
-            return Enumerable.Empty<Client>();
-        }
+        if (string.IsNullOrWhiteSpace(query)) return Enumerable.Empty<ClientResponse>();
 
-        query = query.Trim();
-        var lowered = query.ToLowerInvariant();
-        return await _context.Clients
-            .Where(c => c.DieticianId == dieticianId && (
-                c.FirstName.ToLower().Contains(lowered) ||
-                c.LastName.ToLower().Contains(lowered) ||
-                c.Email.ToLower().Contains(lowered) ||
-                c.Phone.ToLower().Contains(lowered)
-            ))
+        var pattern = $"%{query}%";
+        var clients = await _context.Clients
+            .AsNoTracking()
+            .Where(c => c.DieticianId == dieticianId &&
+               (EF.Functions.Like(c.FirstName ?? "", pattern) ||
+                EF.Functions.Like(c.LastName ?? "", pattern) ||
+                EF.Functions.Like(c.Email ?? "", pattern) ||
+                EF.Functions.Like(c.Phone ?? "", pattern)))
             .OrderBy(c => c.FirstName)
             .ThenBy(c => c.LastName)
             .Take(limit)
             .ToListAsync();
+
+        return _mapper.Map<List<ClientResponse>>(clients);
     }
     
     public async Task<ImportClientsResponse> ImportFromExcelAsync(Guid dieticianId, Stream excelStream)
@@ -162,20 +178,7 @@ public class ClientService : IClientService
                 
                 foreach (var client in clients)
                 {
-                    response.ImportedClients.Add(new ClientResponse
-                    {
-                        Id = client.Id,
-                        FirstName = client.FirstName,
-                        LastName = client.LastName,
-                        Email = client.Email,
-                        Phone = client.Phone,
-                        DateOfBirth = client.DateOfBirth,
-                        Gender = client.Gender,
-                        HasCard = client.HasCard,
-                        Notes = client.Notes,
-                        CreatedAt = client.CreatedAt,
-                        UpdatedAt = client.UpdatedAt
-                    });
+                    response.ImportedClients.Add(_mapper.Map<ClientResponse>(client));
                 }
             }
         }

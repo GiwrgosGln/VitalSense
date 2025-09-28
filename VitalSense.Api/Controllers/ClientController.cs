@@ -5,6 +5,7 @@ using VitalSense.Application.DTOs;
 using Microsoft.AspNetCore.Mvc;
 using VitalSense.Api.Endpoints;
 using Microsoft.AspNetCore.Authorization;
+using AutoMapper;
 
 namespace VitalSense.Api.Controllers;
 
@@ -21,7 +22,7 @@ public class ClientController : ControllerBase
 
     [HttpGet(ApiEndpoints.Clients.GetAll)]
     [ProducesResponseType(typeof(IEnumerable<ClientResponse>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll(int pageNumber = 1, int pageSize = 20)
     {
         var dieticianIdClaim = User.FindFirst("userid")?.Value;
         if (string.IsNullOrEmpty(dieticianIdClaim) || !Guid.TryParse(dieticianIdClaim, out var dieticianId))
@@ -29,7 +30,7 @@ public class ClientController : ControllerBase
             return Unauthorized();
         }
 
-        var clients = await _clientService.GetAllByDieticianAsync(dieticianId);
+        var clients = await _clientService.GetAllByDieticianAsync(dieticianId, pageNumber, pageSize);
         return Ok(clients);
     }
 
@@ -42,22 +43,12 @@ public class ClientController : ControllerBase
         {
             return Unauthorized();
         }
+
         if (limit <= 0 || limit > 100) limit = 20;
+
         var clients = await _clientService.SearchAsync(dieticianId, q, limit);
-        return Ok(clients.Select(c => new ClientResponse
-        {
-            Id = c.Id,
-            FirstName = c.FirstName,
-            LastName = c.LastName,
-            Email = c.Email,
-            Phone = c.Phone,
-            DateOfBirth = c.DateOfBirth,
-            Gender = c.Gender,
-            HasCard = c.HasCard,
-            Notes = c.Notes,
-            CreatedAt = c.CreatedAt,
-            UpdatedAt = c.UpdatedAt
-        }));
+        
+        return Ok(clients);
     }
 
     [HttpGet(ApiEndpoints.Clients.GetById)]
@@ -91,48 +82,30 @@ public class ClientController : ControllerBase
             return Unauthorized();
         }
 
-        var client = new Client
-        {
-            Id = Guid.NewGuid(),
-            FirstName = request.FirstName,
-            LastName = request.LastName,
-            Email = request.Email,
-            Phone = request.Phone ?? string.Empty,
-            DateOfBirth = request.DateOfBirth,
-            Gender = request.Gender,
-            HasCard = request.HasCard,
-            Notes = request.Notes,
-            CreatedAt = DateTime.UtcNow,
-            DieticianId = dieticianId
-        };
+        request.DieticianId = dieticianId;
+        request.CreatedAt = DateTime.UtcNow;
 
-        var created = await _clientService.CreateAsync(client);
+        var created = await _clientService.CreateAsync(request);
 
-        var response = new ClientResponse
-        {
-            Id = created.Id,
-            FirstName = created.FirstName,
-            LastName = created.LastName,
-            Email = created.Email,
-            Phone = created.Phone,
-            DateOfBirth = created.DateOfBirth,
-            Gender = created.Gender,
-            HasCard = created.HasCard,
-            Notes = created.Notes,
-            CreatedAt = created.CreatedAt,
-            UpdatedAt = created.UpdatedAt
-        };
-
-        return CreatedAtAction(nameof(GetById), new { clientId = response.Id }, response);
+        return CreatedAtAction(nameof(GetById), new { clientId = created.Id }, created);
     }
 
     [HttpPut(ApiEndpoints.Clients.Edit)]
     [ProducesResponseType(typeof(ClientResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Update([FromRoute] Guid clientId, [FromBody] Client client)
+    public async Task<IActionResult> Update([FromRoute] Guid clientId, [FromBody] UpdateClientRequest request)
     {
-        var updated = await _clientService.UpdateAsync(clientId, client);
+        var dieticianIdClaim = User.FindFirst("userid")?.Value;
+        if (string.IsNullOrEmpty(dieticianIdClaim) || !Guid.TryParse(dieticianIdClaim, out var dieticianId))
+            return Unauthorized();
+
+        var existing = await _clientService.GetByIdAsync(clientId);
+        if (existing == null) return NotFound();
+        if (existing.DieticianId != dieticianId) return Forbid();
+
+        var updated = await _clientService.UpdateAsync(clientId, request);
         if (updated == null) return NotFound();
+
         return Ok(updated);
     }
 
