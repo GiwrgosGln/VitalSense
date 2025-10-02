@@ -38,6 +38,10 @@ export const paths = {
       path: "/app/clients",
       getHref: () => "/app/clients",
     },
+    questionnaires: {
+      path: "/app/questionnaires",
+      getHref: () => "/app/questionnaires",
+    },
     settings: {
       path: "/app/settings",
       getHref: () => "/app/settings",

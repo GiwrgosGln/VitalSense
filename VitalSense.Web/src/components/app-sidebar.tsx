@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   PieChart,
   Users,
+  FileQuestionMark,
 } from "lucide-react";
 
 import {
@@ -40,6 +41,11 @@ const items = [
     title: "Clients",
     url: paths.app.clients.path,
     icon: Users,
+  },
+  {
+    title: "Questionnaires",
+    url: paths.app.questionnaires.path,
+    icon: FileQuestionMark,
   },
 ];
 
