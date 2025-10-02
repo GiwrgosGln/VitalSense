@@ -89,51 +89,45 @@ public class QuestionnaireTemplateService : IQuestionnaireTemplateService
         
         try
         {
-            var templateExists = await _context.QuestionnaireTemplates
-                .AsNoTracking()
-                .AnyAsync(qt => qt.Id == templateId);
+            var existingTemplate = await _context.QuestionnaireTemplates
+                .Include(qt => qt.Questions)
+                .FirstOrDefaultAsync(qt => qt.Id == templateId);
                 
-            if (!templateExists) return null;
+            if (existingTemplate == null) return null;
             
-            var questionsSql = $"DELETE FROM questionnaire_questions WHERE template_id = '{templateId}'";
-            await _context.Database.ExecuteSqlRawAsync(questionsSql);
+            // Update template properties
+            existingTemplate.Title = updatedTemplate.Title;
+            existingTemplate.Description = updatedTemplate.Description;
+            existingTemplate.UpdatedAt = DateTime.UtcNow;
             
-            var templateSql = $@"
-                UPDATE questionnaire_templates 
-                SET title = '{updatedTemplate.Title.Replace("'", "''")}', 
-                    description = '{(updatedTemplate.Description?.Replace("'", "''") ?? "")}', 
-                    updated_at = '{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff}'
-                WHERE id = '{templateId}'";
+            // Remove all existing questions
+            _context.Set<QuestionnaireQuestion>().RemoveRange(existingTemplate.Questions);
             
-            await _context.Database.ExecuteSqlRawAsync(templateSql);
-            
+            // Add updated questions
             foreach (var updatedQuestion in updatedTemplate.Questions)
             {
                 var questionId = updatedQuestion.Id != Guid.Empty ? updatedQuestion.Id : Guid.NewGuid();
-                var isRequired = updatedQuestion.IsRequired ? 1 : 0;
                 
-                var insertQuestionSql = $@"
-                    INSERT INTO questionnaire_questions (id, template_id, question_text, [order], is_required)
-                    VALUES ('{questionId}', '{templateId}', '{updatedQuestion.QuestionText.Replace("'", "''")}', {updatedQuestion.Order}, {isRequired})";
+                var question = new QuestionnaireQuestion
+                {
+                    Id = questionId,
+                    TemplateId = templateId,
+                    QuestionText = updatedQuestion.QuestionText,
+                    Order = updatedQuestion.Order,
+                    IsRequired = updatedQuestion.IsRequired
+                };
                 
-                await _context.Database.ExecuteSqlRawAsync(insertQuestionSql);
+                await _context.Set<QuestionnaireQuestion>().AddAsync(question);
             }
             
+            await _context.SaveChangesAsync();
             await transaction.CommitAsync();
             
+            // Return the updated template with questions
             var result = await _context.QuestionnaireTemplates
+                .Include(qt => qt.Questions)
                 .AsNoTracking()
                 .FirstOrDefaultAsync(qt => qt.Id == templateId);
-                
-            if (result != null)
-            {
-                var questions = await _context.Set<QuestionnaireQuestion>()
-                    .AsNoTracking()
-                    .Where(q => q.TemplateId == templateId)
-                    .ToListAsync();
-                    
-                result.Questions = questions;
-            }
                 
             return result;
         }
