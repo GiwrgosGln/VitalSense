@@ -10,4 +10,6 @@ public class TaskResponse
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
     public Guid? ClientId { get; set; }
+    public string? ClientName { get; set; }
+    public string? ClientSurname { get; set; }
 }
