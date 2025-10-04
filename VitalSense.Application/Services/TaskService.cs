@@ -43,11 +43,11 @@ public class TaskService : ITaskService
             .AsNoTracking()
             .Where(t => t.DieticianId == dieticianId)
             .OrderByDescending(t => t.CreatedAt)
-            .Join(
+            .GroupJoin(
                 _context.Clients,
                 task => task.ClientId,
                 client => client.Id,
-                (task, client) => new { task, client }
+                (task, clients) => new { task, client = clients.FirstOrDefault() }
             )
             .Select(tc => new TaskResponse
             {
@@ -59,8 +59,8 @@ public class TaskService : ITaskService
                 CreatedAt = tc.task.CreatedAt,
                 UpdatedAt = tc.task.UpdatedAt,
                 ClientId = tc.task.ClientId,
-                ClientName = tc.client.FirstName,
-                ClientSurname = tc.client.LastName
+                ClientName = tc.client != null ? tc.client.FirstName : null,
+                ClientSurname = tc.client != null ? tc.client.LastName : null
             })
             .ToListAsync();
     }
@@ -70,11 +70,11 @@ public class TaskService : ITaskService
         var result = await _context.Tasks
             .AsNoTracking()
             .Where(t => t.Id == taskId && t.DieticianId == dieticianId)
-            .Join(
+            .GroupJoin(
                 _context.Clients,
                 task => task.ClientId,
                 client => client.Id,
-                (task, client) => new { task, client }
+                (task, clients) => new { task, client = clients.FirstOrDefault() }
             )
             .Select(tc => new TaskResponse
             {
@@ -86,8 +86,8 @@ public class TaskService : ITaskService
                 CreatedAt = tc.task.CreatedAt,
                 UpdatedAt = tc.task.UpdatedAt,
                 ClientId = tc.task.ClientId,
-                ClientName = tc.client.FirstName,
-                ClientSurname = tc.client.LastName
+                ClientName = tc.client != null ? tc.client.FirstName : null,
+                ClientSurname = tc.client != null ? tc.client.LastName : null
             })
             .FirstOrDefaultAsync();
 
@@ -121,7 +121,7 @@ public class TaskService : ITaskService
         IsCompleted = t.IsCompleted,
         DueDate = t.DueDate,
         CreatedAt = t.CreatedAt,
-    UpdatedAt = t.UpdatedAt,
-    ClientId = t.ClientId
+        UpdatedAt = t.UpdatedAt,
+        ClientId = t.ClientId
     };
 }
