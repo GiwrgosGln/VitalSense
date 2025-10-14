@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/table";
 import React from "react";
 import { Search } from "lucide-react";
+import CreateClientForm from "./create-client-form";
 
 interface ClientsTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -72,26 +73,31 @@ export function ClientsTable<TData, TValue>({
 
   return (
     <div className="px-5 md:px-10 max-w-screen w-full">
-      <div className="flex items-center py-4 gap-2">
-        <Input
-          placeholder="Search clients..."
-          value={searchQuery}
-          onChange={(event) => setSearchQuery(event.target.value)}
-          className="max-w-full md:max-w-sm"
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              handleSearch();
-            }
-          }}
-        />
-        <Button
-          onClick={handleSearch}
-          disabled={isLoading}
-          size="icon"
-          variant="outline"
-        >
-          <Search />
-        </Button>
+      <div className="flex flex-row justify-between items-center">
+        <div className="flex items-center py-4 gap-2">
+          <Input
+            placeholder="Search clients..."
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            className="max-w-full md:max-w-sm"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                handleSearch();
+              }
+            }}
+          />
+          <Button
+            onClick={handleSearch}
+            disabled={isLoading}
+            size="icon"
+            variant="outline"
+          >
+            <Search />
+          </Button>
+        </div>
+        <div>
+          <CreateClientForm />
+        </div>
       </div>
       <div className="flex overflow-hidden rounded-md border">
         <Table>

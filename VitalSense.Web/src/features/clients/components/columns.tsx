@@ -14,6 +14,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { formatDate } from "@/utils/format";
 import { useDeleteClient } from "../api/delete-client";
+import EditClientForm from "./edit-client-form";
+import { useState } from "react";
 
 export const columns: ColumnDef<Client>[] = [
   {
@@ -68,6 +70,7 @@ export const columns: ColumnDef<Client>[] = [
     cell: ({ row }) => {
       const client = row.original;
       const { mutate: deleteClient, isPending } = useDeleteClient();
+      const [editSheetOpen, setEditSheetOpen] = useState(false);
 
       const handleDelete = () => {
         if (window.confirm("Are you sure you want to delete this client?")) {
@@ -76,33 +79,41 @@ export const columns: ColumnDef<Client>[] = [
       };
 
       return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Open menu</span>
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={() => navigator.clipboard.writeText(client.id)}
-            >
-              View Client
-            </DropdownMenuItem>
-            <DropdownMenuItem>Edit Client</DropdownMenuItem>
-            <DropdownMenuItem>Create Meal Plan</DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              className="text-red-500"
-              onClick={handleDelete}
-              disabled={isPending}
-            >
-              {isPending ? "Deleting..." : "Delete Client"}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <span className="sr-only">Open menu</span>
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => navigator.clipboard.writeText(client.id)}
+              >
+                View Client
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setEditSheetOpen(true)}>
+                Edit Client
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="text-red-500"
+                onClick={handleDelete}
+                disabled={isPending}
+              >
+                {isPending ? "Deleting..." : "Delete Client"}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <EditClientForm
+            open={editSheetOpen}
+            onOpenChange={setEditSheetOpen}
+            client={client}
+          />
+        </>
       );
     },
   },

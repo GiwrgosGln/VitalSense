@@ -7,7 +7,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 export const createClientInputSchema = z.object({
   firstName: z.string().min(4, "Required").max(50, "Max 50 characters"),
   lastName: z.string().min(4, "Required").max(50, "Max 50 characters"),
-  email: z.string().email("Invalid email address").optional(),
+  email: z.string().email("Invalid email address"),
   phone: z.string().optional(),
   dateOfBirth: z.string().optional(),
   gender: z.string().optional(),
