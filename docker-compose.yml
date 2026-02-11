@@ -6,8 +6,6 @@ services:
       context: .
       dockerfile: ./VitalSense.Api/Dockerfile
     container_name: vitalsense-api
-    ports:
-      - "8080:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:8080
@@ -26,6 +24,16 @@ services:
       - DataProtection__KeysDirectory=/keys
     volumes:
       - dataprotection_keys:/keys
+    networks:
+      - coolify
+    labels:
+      - "coolify.managed=true"
+      - "traefik.enable=true"
+      - "traefik.http.routers.vitalsense-api.rule=Host(`api.glns.dev`)"
+      - "traefik.http.routers.vitalsense-api.entrypoints=websecure"
+      - "traefik.http.routers.vitalsense-api.tls=true"
+      - "traefik.http.routers.vitalsense-api.tls.certresolver=letsencrypt"
+      - "traefik.http.services.vitalsense-api.loadbalancer.server.port=8080"
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "wget -q --spider http://localhost:8080/health || exit 1"]
@@ -36,3 +44,7 @@ services:
 
 volumes:
   dataprotection_keys:
+
+networks:
+  coolify:
+    external: true
