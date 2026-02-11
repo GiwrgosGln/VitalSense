@@ -22,8 +22,6 @@ services:
       - OpenRouter__ApiUrl=${OPENROUTER_API_URL}
       - OpenRouter__Model=${OPENROUTER_MODEL}
       - DataProtection__KeysDirectory=/keys
-    ports:
-      - "5015:8080"
     volumes:
       - dataprotection_keys:/keys
     restart: unless-stopped
